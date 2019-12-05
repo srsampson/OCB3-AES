@@ -12,7 +12,7 @@
  * This file is in the public domain. It is provided "as is", without
  * warranty of any kind. Use at your own risk.
  *
- * Comments are welcome: Ted Krovetz <ted@krovetz>.
+ * Comments are welcome: Ted Krovetz
  *
  * ------------------------------------------------------------------------ */
 
@@ -21,28 +21,33 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
 #include <stdint.h>
-    
+
 /* --------------------------------------------------------------------------
  *
  * Constants
  *
  * ----------------------------------------------------------------------- */
-    
-typedef struct { uint64_t l,r; } block;
-typedef struct { uint32_t rd_key[32+28]; } AES_KEY;
+
+typedef struct {
+    uint64_t l, r;
+} block;
+
+typedef struct {
+    uint32_t rd_key[32 + 28];
+} AES_KEY;
 
 struct _ae_ctx {
-    block offset;                          /* Memory correct               */
-    block checksum;                        /* Memory correct               */
-    block Lstar;                           /* Memory correct               */
-    block Ldollar;                         /* Memory correct               */
-    block L[16];                           /* Memory correct               */
-    block ad_checksum;                     /* Memory correct               */
-    block ad_offset;                       /* Memory correct               */
-    block cached_Top;                      /* Memory correct               */
-	uint64_t KtopStr[3];                   /* Register correct, each item  */
+    block offset; /* Memory correct               */
+    block checksum; /* Memory correct               */
+    block Lstar; /* Memory correct               */
+    block Ldollar; /* Memory correct               */
+    block L[16]; /* Memory correct               */
+    block ad_checksum; /* Memory correct               */
+    block ad_offset; /* Memory correct               */
+    block cached_Top; /* Memory correct               */
+    uint64_t KtopStr[3]; /* Register correct, each item  */
     uint32_t ad_blocks_processed;
     uint32_t blocks_processed;
     AES_KEY decrypt_key;
@@ -75,10 +80,10 @@ typedef struct _ae_ctx ae_ctx;
  *
  * ----------------------------------------------------------------------- */
 
-ae_ctx* ae_allocate  (void);        /* Allocate ae_ctx,                    */
-void    ae_free      (ae_ctx *ctx); /* Deallocate ae_ctx struct            */
-void    ae_clear     (ae_ctx *ctx); /* Undo initialization                 */
-int     ae_ctx_sizeof(void);        /* Return sizeof(ae_ctx)               */
+ae_ctx* ae_allocate(void); /* Allocate ae_ctx,                    */
+void ae_free(ae_ctx *ctx); /* Deallocate ae_ctx struct            */
+void ae_clear(ae_ctx *ctx); /* Undo initialization                 */
+int ae_ctx_sizeof(void); /* Return sizeof(ae_ctx)               */
 /* ae_allocate() allocates an ae_ctx structure, but does not initialize it.
  * ae_free() deallocates an ae_ctx structure, but does not zero it.
  * ae_clear() zeroes sensitive values associated with an ae_ctx structure
@@ -92,10 +97,10 @@ int     ae_ctx_sizeof(void);        /* Return sizeof(ae_ctx)               */
  *
  * ----------------------------------------------------------------------- */
 
-int ae_init(ae_ctx     *ctx,
-            const void *key,
-            int         key_len,
-            int         nonce_len);
+int ae_init(ae_ctx *ctx,
+        const void *key,
+        int key_len,
+        int nonce_len);
 /* --------------------------------------------------------------------------
  *
  * Initialize an ae_ctx context structure.
@@ -113,15 +118,15 @@ int ae_init(ae_ctx     *ctx,
  *
  * ----------------------------------------------------------------------- */
 
-int ae_encrypt(ae_ctx     *ctx,
-               const void *nonce,
-               const void *pt,
-               int         pt_len,
-               const void *ad,
-               int         ad_len,
-               void       *ct,
-               void       *tag,
-               int         final);
+int ae_encrypt(ae_ctx *ctx,
+        const void *nonce,
+        const void *pt,
+        int pt_len,
+        const void *ad,
+        int ad_len,
+        void *ct,
+        void *tag,
+        int final);
 /* --------------------------------------------------------------------------
  *
  * Encrypt plaintext; provide for authentication of ciphertext/associated data.
@@ -150,15 +155,15 @@ int ae_encrypt(ae_ctx     *ctx,
  *
  * ----------------------------------------------------------------------- */
 
-int ae_decrypt(ae_ctx     *ctx,
-               const void *nonce,
-               const void *ct,
-               int         ct_len,
-               const void *ad,
-               int         ad_len,
-               void       *pt,
-               const void *tag,
-               int         final);
+int ae_decrypt(ae_ctx *ctx,
+        const void *nonce,
+        const void *ct,
+        int ct_len,
+        const void *ad,
+        int ad_len,
+        void *pt,
+        const void *tag,
+        int final);
 /* --------------------------------------------------------------------------
  *
  * Decrypt ciphertext; provide authenticity of plaintext and associated data.

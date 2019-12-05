@@ -6,6 +6,9 @@ extern "C" {
 
 #include <stdint.h>
 
+void hash(const uint8_t *, const uint8_t *, int, const uint8_t [][16],
+        const uint8_t *, uint8_t *);
+
 /**
  * Encrypts a message with associated data.
  * @param key                    256 bit encryption key.
@@ -20,8 +23,8 @@ extern "C" {
  * @param out                    output with length [message_length + 16 bytes]
  */
 void ocb_encrypt(const uint8_t key[32], const uint8_t nonce[15], int nonce_length,
-  const uint8_t *message, int message_length, const uint8_t *associated_data,
-  int associated_data_length, uint8_t *out);
+        const uint8_t *message, int message_length, const uint8_t *associated_data,
+        int associated_data_length, uint8_t *out);
 
 /**
  * Decrypts a message with associated data.
@@ -39,8 +42,8 @@ void ocb_encrypt(const uint8_t key[32], const uint8_t nonce[15], int nonce_lengt
  * @return                       MUST BE CHECKED. Zero if decipher succesful.
  */
 int ocb_decrypt(const uint8_t key[32], const uint8_t nonce[15], int nonce_length,
-  const uint8_t *encrypted, int encrypted_length, const uint8_t *associated_data,
-  int associated_data_length, uint8_t *out);
+        const uint8_t *encrypted, int encrypted_length, const uint8_t *associated_data,
+        int associated_data_length, uint8_t *out);
 
 #ifdef __cplusplus
 }
