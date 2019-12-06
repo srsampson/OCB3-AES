@@ -13,7 +13,7 @@ The test program executes 100,000 loops. My output from a Core I5 CPU was:
 
 real	0m10.408s
 user	0m10.407s
-sys	  0m0.000s
+sys	0m0.000s
 ```
 Which looks like about 104 micro-seconds per loop in user time.
 
