@@ -180,5 +180,5 @@ int ae_decrypt(ae_ctx *, const void *, const void *, int, const void *,
  * ----------------------------------------------------------------------- */
 
 #ifdef __cplusplus
-} /* closing brace for extern "C" */
+}
 #endif

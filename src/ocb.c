@@ -380,6 +380,8 @@ void hash(const uint8_t * __restrict round_key,
     }
 }
 
+// Fixed nonce size 12 bytes or 96 bits
+
 void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce,
         const uint8_t * __restrict message, int message_length,
         const uint8_t * __restrict associated_data, int associated_data_length, uint8_t *out) {
@@ -412,7 +414,7 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
     }
     
     uint8_t offset[24] = {0};
-    int index = 3;               // 15 - 12 nonce = 12 bytes / 96 bits
+    int index = NONCE_MAX - 12;               // 15 - 12 nonce = 12 bytes / 96 bits
     
     offset[index++] |= 1;
     for (int i = 0; i < 12; index++, i++)
@@ -420,6 +422,7 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
     
     uint32_t bottom = offset[15] % 64;
     offset[15] ^= bottom;
+    
     cipher(offset, round_key);
     
     for (int i = 0; i < 8; i++)
@@ -478,6 +481,8 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
         out[full_block_length + p_asterisk_length + i] = checksum[i];
 }
 
+// Fixed nonce size 12 bytes or 96 bits
+
 int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce,
         const uint8_t * __restrict encrypted,
         int encrypted_length, const uint8_t * __restrict associated_data,
@@ -508,7 +513,7 @@ int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce
         double_arr(l[i]);
     }
     uint8_t offset[24] = {0};
-    int index = 3;                  // 15 - nonce_length (12)
+    int index = NONCE_MAX - 12;             // 15 - nonce_length (12) = 3
     
     offset[index++] |= 1;
     for (uint32_t i = 0; i < 12; index++, i++)
