@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------
-/ OCB Version 3 Reference Code (Optimized C)     Last modified 12-JUN-2013
+/ OCB Version 3 Reference Code
 /-------------------------------------------------------------------------
 / Copyright (c) 2013 Ted Krovetz.
 /
@@ -15,12 +15,8 @@
 / ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 / OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /
-/ Phillip Rogaway holds patents relevant to OCB. See the following for
-/ his patent grant: http://www.cs.ucdavis.edu/~rogaway/ocb/grant.htm
-/
 / Special thanks to Keegan McAllister for suggesting several good improvements
-/
-/ Comments are welcome: Ted Krovetz <ted@krovetz.net> - Dedicated to Laurel K
+/ Dedicated to Laurel K
 /------------------------------------------------------------------------- */
 
 /* ----------------------------------------------------------------------- */
@@ -34,9 +30,7 @@
 /    any function should be 16-byte aligned.
 /  - Plaintext and ciphertext pointers may be equal (ie, plaintext gets
 /    encrypted in-place), but no other pair of pointers may be equal.
-/  - This code assumes all x86 processors have SSE2 and SSSE3 instructions
-/    when compiling under MSVC. If untrue, alter the #define.
-/  - This code is tested for C99 and recent versions of GCC and MSVC.      */
+/  - This code is tested for C99 and recent versions of GCC         .      */
 
 /* ----------------------------------------------------------------------- */
 /* Includes and compiler specific definitions                              */
@@ -73,97 +67,21 @@
 
 #define getL(_ctx, _tz) ((_ctx)->L[_tz])
 
+#define unequal_blocks(x, y) ((((x).l^(y).l)|((x).r^(y).r)) != 0)
+
 /* GNU Compiler-specific intrinsics and fixes: bswap64, ntz                */
 
-#define inline __inline
-#define restrict __restrict
+#ifdef USE_BUILTIN
 #define bswap64(x) __builtin_bswap64(x)           /* Assuming GCC 4.3+ */
 #define ntz(x)     __builtin_ctz((uint32_t)(x))   /* Assuming GCC 3.4+ */
+#define ocb_memcpy(a,b,c) __builtin_memcpy(a,b,c)
+#else
+#define ocb_memcpy(a,b,c) memcpy(a,b,c)
 
-/* ----------------------------------------------------------------------- */
-/* Define blocks and operations -- Patch if incorrect on your compiler.    */
-
-/* ----------------------------------------------------------------------- */
-
-static inline block xor_block(block x, block y) {
-    x.l ^= y.l;
-    x.r ^= y.r;
-    return x;
-}
-
-static inline block zero_block(void) {
-    const block t = {0, 0};
-    return t;
-}
-
-#define unequal_blocks(x, y)         ((((x).l^(y).l)|((x).r^(y).r)) != 0)
-
-static inline block swap_if_le(block b) {
-
-    const union {
-        uint32_t x;
-        uint8_t endian;
-    } little = {1};
-    if (little.endian) {
-        block r;
-        r.l = bswap64(b.l);
-        r.r = bswap64(b.r);
-        return r;
-    } else
-        return b;
-}
-
-/* KtopStr is reg correct by 64 bits, return mem correct */
-block gen_offset(uint64_t KtopStr[3], uint32_t bot) {
-    block rval;
-
-    if (bot != 0) {
-        rval.l = (KtopStr[0] << bot) | (KtopStr[1] >> (64 - bot));
-        rval.r = (KtopStr[1] << bot) | (KtopStr[2] >> (64 - bot));
-    } else {
-        rval.l = KtopStr[0];
-        rval.r = KtopStr[1];
-    }
-
-    return swap_if_le(rval);
-}
-
-static inline block double_block(block b) {
-    uint64_t t = (uint64_t) ((int64_t) b.l >> 63);
-
-    b.l = (b.l + b.l) ^ (b.r >> 63);
-    b.r = (b.r + b.r) ^ (t & 135);
-
-    return b;
-}
-
-#define ROUNDS(ctx) (6 + (32/4))
-#define AES_set_encrypt_key(x, y, z) KeySetupEnc((z)->rd_key, x, y)
-#define AES_set_decrypt_key(x, y, z) KeySetupDec((z)->rd_key, x, y)
-#define AES_encrypt(x,y,z) Encrypt((z)->rd_key, ROUNDS(z), x, y)
-#define AES_decrypt(x,y,z) Decrypt((z)->rd_key, ROUNDS(z), x, y)
-
-static void AES_ecb_encrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
-    while (nblks) {
-        --nblks;
-        AES_encrypt((uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks), key);
-    }
-}
-
-void AES_ecb_decrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
-    while (nblks) {
-        --nblks;
-        AES_decrypt((uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks), key);
-    }
-}
-
-/*----------*/
-
-#ifdef NATIVE
 // count trailing zeroes in x; for each block in the message,
 // ntz(blocknumber) selects an L_n value for the "offset"
 
-int ntz_native(uint64_t x) {
+int ntz(uint64_t x) {
     uint64_t y;
 
     if (x == 0) {
@@ -218,6 +136,69 @@ int ntz_native(uint64_t x) {
 #endif
 
 /* ----------------------------------------------------------------------- */
+/* Define blocks and operations -- Patch if incorrect on your compiler.    */
+
+/* ----------------------------------------------------------------------- */
+
+static inline block xor_block(block x, block y) {
+    x.l ^= y.l;
+    x.r ^= y.r;
+    return x;
+}
+
+static inline block zero_block(void) {
+    const block t = {0, 0};
+    return t;
+}
+
+static inline block swap_block(block b) {
+    block r;
+
+    r.l = bswap64(b.l);
+    r.r = bswap64(b.r);
+
+    return r;
+}
+
+/* KtopStr is reg correct by 64 bits, return mem correct */
+block gen_offset(uint64_t KtopStr[3], uint32_t bot) {
+    block rval;
+
+    if (bot != 0) {
+        rval.l = (KtopStr[0] << bot) | (KtopStr[1] >> (64 - bot));
+        rval.r = (KtopStr[1] << bot) | (KtopStr[2] >> (64 - bot));
+    } else {
+        rval.l = KtopStr[0];
+        rval.r = KtopStr[1];
+    }
+
+    return swap_block(rval);
+}
+
+static inline block double_block(block b) {
+    uint64_t t = (uint64_t) ((int64_t) b.l >> 63);
+
+    b.l = (b.l + b.l) ^ (b.r >> 63);
+    b.r = (b.r + b.r) ^ (t & 135);
+
+    return b;
+}
+
+static void ocb3_encrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
+    while (nblks) {
+        --nblks;
+        AES_Encrypt(key->rd_key, 14, (uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks));
+    }
+}
+
+static void ocb3_decrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
+    while (nblks) {
+        --nblks;
+        AES_Decrypt(key->rd_key, 14, (uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks));
+    }
+}
+
+/* ----------------------------------------------------------------------- */
 /* Public functions                                                        */
 /* ----------------------------------------------------------------------- */
 
@@ -244,33 +225,34 @@ int ae_ctx_sizeof(void) {
 
 /* ----------------------------------------------------------------------- */
 
-int ae_init(ae_ctx *ctx, const void *key, int key_len, int nonce_len) {
+int ae_init(ae_ctx *ctx, const uint8_t *key, int nonce_len) {
     uint32_t i;
     block tmp_blk;
 
     if (nonce_len != 12)
         return AE_NOT_SUPPORTED;
-
+    
     /* Initialize encryption & decryption keys */
-    key_len = 32;
-    AES_set_encrypt_key((uint8_t *) key, key_len * 8, &ctx->encrypt_key);
-    AES_set_decrypt_key((uint8_t *) key, (int) (key_len * 8), &ctx->decrypt_key);
+    
+    AES_KeySetupEnc((&ctx->encrypt_key)->rd_key, key, 256);
+    AES_KeySetupDec((&ctx->decrypt_key)->rd_key, key, 256);
 
     /* Zero things that need zeroing */
     ctx->cached_Top = ctx->ad_checksum = zero_block();
     ctx->ad_blocks_processed = 0;
 
     /* Compute key-dependent values */
-    AES_encrypt((uint8_t *) & ctx->cached_Top,
-            (uint8_t *) & ctx->Lstar, &ctx->encrypt_key);
-    tmp_blk = swap_if_le(ctx->Lstar);
+    AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, (uint8_t *) & ctx->cached_Top, (uint8_t *) & ctx->Lstar);
+
+    tmp_blk = swap_block(ctx->Lstar);
     tmp_blk = double_block(tmp_blk);
-    ctx->Ldollar = swap_if_le(tmp_blk);
+    ctx->Ldollar = swap_block(tmp_blk);
     tmp_blk = double_block(tmp_blk);
-    ctx->L[0] = swap_if_le(tmp_blk);
+    ctx->L[0] = swap_block(tmp_blk);
+    
     for (i = 1; i < L_TABLE_SZ; i++) {
         tmp_blk = double_block(tmp_blk);
-        ctx->L[i] = swap_if_le(tmp_blk);
+        ctx->L[i] = swap_block(tmp_blk);
     }
 
     return AE_SUCCESS;
@@ -305,16 +287,21 @@ static block gen_offset_from_nonce(ae_ctx *ctx, const void *nonce) {
     tmp.u32[3] = ((uint32_t *) nonce)[2];
     idx = (uint32_t) (tmp.u8[15] & 0x3f); /* Get low 6 bits of nonce  */
     tmp.u8[15] = tmp.u8[15] & 0xc0; /* Zero low 6 bits of nonce */
+    
     if (unequal_blocks(tmp.bl, ctx->cached_Top)) { /* Cached?       */
         ctx->cached_Top = tmp.bl; /* Update cache, KtopStr    */
-        AES_encrypt(tmp.u8, (uint8_t *) & ctx->KtopStr, &ctx->encrypt_key);
+
+        AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, tmp.u8, (uint8_t *) & ctx->KtopStr);
+        
         if (little.endian) { /* Make Register Correct    */
             ctx->KtopStr[0] = bswap64(ctx->KtopStr[0]);
             ctx->KtopStr[1] = bswap64(ctx->KtopStr[1]);
         }
+        
         ctx->KtopStr[2] = ctx->KtopStr[0] ^
                 (ctx->KtopStr[0] << 8) ^ (ctx->KtopStr[1] >> 56);
     }
+    
     return gen_offset(ctx->KtopStr, idx);
 }
 
@@ -325,6 +312,7 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
         uint8_t u8[16];
         block bl;
     } tmp;
+    
     block ad_offset, ad_checksum;
     const block * adp = (block *) ad;
     uint32_t i, k, tz, remaining;
@@ -332,8 +320,10 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
     ad_offset = ctx->ad_offset;
     ad_checksum = ctx->ad_checksum;
     i = ad_len / (BPI * 16);
+    
     if (i) {
         uint32_t ad_block_num = ctx->ad_blocks_processed;
+        
         do {
             block ta[BPI], oa[BPI];
 
@@ -350,7 +340,7 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
             ad_offset = xor_block(oa[2], getL(ctx, tz));
             ta[3] = xor_block(ad_offset, adp[3]);
 
-            AES_ecb_encrypt_blks(ta, BPI, &ctx->encrypt_key);
+            ocb3_encrypt_blks(ta, BPI, &ctx->encrypt_key);
 
             ad_checksum = xor_block(ad_checksum, ta[0]);
             ad_checksum = xor_block(ad_checksum, ta[1]);
@@ -392,13 +382,13 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
             if (remaining) {
                 ad_offset = xor_block(ad_offset, ctx->Lstar);
                 tmp.bl = zero_block();
-                memcpy(tmp.u8, adp + k, remaining);
+                ocb_memcpy(tmp.u8, adp + k, remaining);
                 tmp.u8[remaining] = (uint8_t) 0x80u;
                 ta[k] = xor_block(ad_offset, tmp.bl);
                 ++k;
             }
 
-            AES_ecb_encrypt_blks(ta, k, &ctx->encrypt_key);
+            ocb3_encrypt_blks(ta, k, &ctx->encrypt_key);
 
             switch (k) {
                 case 4: ad_checksum = xor_block(ad_checksum, ta[3]);
@@ -477,7 +467,7 @@ int ae_encrypt(ae_ctx * ctx,
             ta[3] = xor_block(oa[3], ptp[3]);
             checksum = xor_block(checksum, ptp[3]);
 
-            AES_ecb_encrypt_blks(ta, BPI, &ctx->encrypt_key);
+            ocb3_encrypt_blks(ta, BPI, &ctx->encrypt_key);
 
             ctp[0] = xor_block(ta[0], oa[0]);
             ctp[1] = xor_block(ta[1], oa[1]);
@@ -522,7 +512,7 @@ int ae_encrypt(ae_ctx * ctx,
 
             if (remaining) {
                 tmp.bl = zero_block();
-                memcpy(tmp.u8, ptp + k, remaining);
+                ocb_memcpy(tmp.u8, ptp + k, remaining);
                 tmp.u8[remaining] = (uint8_t) 0x80u;
                 checksum = xor_block(checksum, tmp.bl);
                 ta[k] = offset = xor_block(offset, ctx->Lstar);
@@ -533,14 +523,14 @@ int ae_encrypt(ae_ctx * ctx,
         offset = xor_block(offset, ctx->Ldollar); /* Part of tag gen */
         ta[k] = xor_block(offset, checksum); /* Part of tag gen */
 
-        AES_ecb_encrypt_blks(ta, k + 1, &ctx->encrypt_key);
+        ocb3_encrypt_blks(ta, k + 1, &ctx->encrypt_key);
 
         offset = xor_block(ta[k], ctx->ad_checksum); /* Part of tag gen */
 
         if (remaining) {
             --k;
             tmp.bl = xor_block(tmp.bl, ta[k]);
-            memcpy(ctp + k, tmp.u8, remaining);
+            ocb_memcpy(ctp + k, tmp.u8, remaining);
         }
 
         switch (k) {
@@ -554,7 +544,7 @@ int ae_encrypt(ae_ctx * ctx,
         if (tag) {
             *(block *) tag = offset;
         } else {
-            memcpy((char *) ct + pt_len, &offset, OCB_TAG_LEN);
+            ocb_memcpy((char *) ct + pt_len, &offset, OCB_TAG_LEN);
             pt_len += OCB_TAG_LEN;
         }
     }
@@ -644,7 +634,7 @@ int ae_decrypt(ae_ctx * ctx,
             oa[3] = xor_block(oa[2], getL(ctx, ntz(block_num)));
             ta[3] = xor_block(oa[3], ctp[3]);
 
-            AES_ecb_decrypt_blks(ta, BPI, &ctx->decrypt_key);
+            ocb3_decrypt_blks(ta, BPI, &ctx->decrypt_key);
             ptp[0] = xor_block(ta[0], oa[0]);
             checksum = xor_block(checksum, ptp[0]);
             ptp[1] = xor_block(ta[1], oa[1]);
@@ -686,16 +676,20 @@ int ae_decrypt(ae_ctx * ctx,
             if (remaining) {
                 block pad;
                 offset = xor_block(offset, ctx->Lstar);
-                AES_encrypt((uint8_t *) & offset, tmp.u8, &ctx->encrypt_key);
+                
+                AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, (uint8_t *) & offset, tmp.u8);
+                
                 pad = tmp.bl;
-                memcpy(tmp.u8, ctp + k, remaining);
+                ocb_memcpy(tmp.u8, ctp + k, remaining);
                 tmp.bl = xor_block(tmp.bl, pad);
                 tmp.u8[remaining] = (uint8_t) 0x80u;
-                memcpy(ptp + k, tmp.u8, remaining);
+                ocb_memcpy(ptp + k, tmp.u8, remaining);
                 checksum = xor_block(checksum, tmp.bl);
             }
         }
-        AES_ecb_decrypt_blks(ta, k, &ctx->decrypt_key);
+        
+        ocb3_decrypt_blks(ta, k, &ctx->decrypt_key);
+        
         switch (k) {
             case 3: ptp[2] = xor_block(ta[2], oa[2]);
                 checksum = xor_block(checksum, ptp[2]);
@@ -708,7 +702,9 @@ int ae_decrypt(ae_ctx * ctx,
         /* Calculate expected tag */
         offset = xor_block(offset, ctx->Ldollar);
         tmp.bl = xor_block(offset, checksum);
-        AES_encrypt(tmp.u8, tmp.u8, &ctx->encrypt_key);
+        
+        AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, tmp.u8, tmp.u8);
+        
         tmp.bl = xor_block(tmp.bl, ctx->ad_checksum); /* Full tag */
 
         /* Compare with proposed tag, change ct_len if invalid */

@@ -3,16 +3,9 @@
  * AEAD API 0.12 - 23-MAY-2012
  *
  * This file gives an interface appropriate for many authenticated
- * encryption with associated data (AEAD) implementations. It does not try
- * to accommodate all possible options or limitations that an implementation
- * might have -- you should consult the documentation of your chosen
- * implementation to find things like RFC 5116 constants, alignment
- * requirements, whether the incremental interface is supported, etc.
+ * encryption with associated data (AEAD) implementations.
  *
- * This file is in the public domain. It is provided "as is", without
- * warranty of any kind. Use at your own risk.
- *
- * Comments are welcome: Ted Krovetz
+ * public domain by Ted Krovetz
  *
  * ------------------------------------------------------------------------ */
 
@@ -54,6 +47,8 @@ struct _ae_ctx {
     AES_KEY encrypt_key;
 };
 
+#define USE_BUILTIN
+
 /* Return status codes: Negative return values indicate an error occurred.
  * For full explanations of error values, consult the implementation's
  * documentation.                                                          */
@@ -81,9 +76,10 @@ typedef struct _ae_ctx ae_ctx;
  * ----------------------------------------------------------------------- */
 
 ae_ctx* ae_allocate(void); /* Allocate ae_ctx,                    */
-void ae_free(ae_ctx *ctx); /* Deallocate ae_ctx struct            */
-void ae_clear(ae_ctx *ctx); /* Undo initialization                 */
+void ae_free(ae_ctx *); /* Deallocate ae_ctx struct            */
+void ae_clear(ae_ctx *); /* Undo initialization                 */
 int ae_ctx_sizeof(void); /* Return sizeof(ae_ctx)               */
+
 /* ae_allocate() allocates an ae_ctx structure, but does not initialize it.
  * ae_free() deallocates an ae_ctx structure, but does not zero it.
  * ae_clear() zeroes sensitive values associated with an ae_ctx structure
@@ -97,10 +93,8 @@ int ae_ctx_sizeof(void); /* Return sizeof(ae_ctx)               */
  *
  * ----------------------------------------------------------------------- */
 
-int ae_init(ae_ctx *ctx,
-        const void *key,
-        int key_len,
-        int nonce_len);
+int ae_init(ae_ctx *, const uint8_t *, int);
+
 /* --------------------------------------------------------------------------
  *
  * Initialize an ae_ctx context structure.
@@ -108,7 +102,6 @@ int ae_init(ae_ctx *ctx,
  * Parameters:
  *  ctx       - Pointer to an ae_ctx structure to be initialized
  *  key       - Pointer to user-supplied key
- *  key_len   - Length of key supplied, in bytes
  *  nonce_len - Length of nonces to be used for this key, in bytes
  *
  * Returns:
@@ -118,15 +111,9 @@ int ae_init(ae_ctx *ctx,
  *
  * ----------------------------------------------------------------------- */
 
-int ae_encrypt(ae_ctx *ctx,
-        const void *nonce,
-        const void *pt,
-        int pt_len,
-        const void *ad,
-        int ad_len,
-        void *ct,
-        void *tag,
-        int final);
+int ae_encrypt(ae_ctx *, const void *, const void *, int, const void *,
+        int, void *, void *, int);
+
 /* --------------------------------------------------------------------------
  *
  * Encrypt plaintext; provide for authentication of ciphertext/associated data.
@@ -155,15 +142,9 @@ int ae_encrypt(ae_ctx *ctx,
  *
  * ----------------------------------------------------------------------- */
 
-int ae_decrypt(ae_ctx *ctx,
-        const void *nonce,
-        const void *ct,
-        int ct_len,
-        const void *ad,
-        int ad_len,
-        void *pt,
-        const void *tag,
-        int final);
+int ae_decrypt(ae_ctx *, const void *, const void *, int, const void *,
+        int, void *, const void *, int);
+
 /* --------------------------------------------------------------------------
  *
  * Decrypt ciphertext; provide authenticity of plaintext and associated data.

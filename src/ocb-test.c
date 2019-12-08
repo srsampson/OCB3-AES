@@ -44,7 +44,7 @@ test:
 
     ocb_encrypt(key, nonce, 12, message, mlen, associated_data, alen, out1);
     ae_clear(&ctx);
-    ae_init(&ctx, key, 32, 12);
+    ae_init(&ctx, key, 12);
 
     if (ae_encrypt(&ctx, nonce, message, mlen, associated_data, alen, out2, NULL, 1) <= 0) {
         puts("Reference error.");

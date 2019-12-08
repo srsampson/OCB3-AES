@@ -17,10 +17,11 @@
 
 #include "ocb.h"
 
-#define USE_BUILTIN
+#ifdef USE_BUILTIN
 #define ocb_ntz(a) __builtin_ctz((uint32_t) a)
 #define ocb_ntz_round(a) ((a) == 0) ? 0 : (sizeof(uint32_t) * 8 - __builtin_clz((uint32_t) (a)) - 1)
 #define ocb_memcpy(a,b,c) __builtin_memcpy(a,b,c)
+#endif
 
 static const uint8_t sbox[256] = {
     //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
@@ -157,6 +158,7 @@ static inline uint8_t Multiply(uint8_t x, uint8_t y) {
 
 static void mix_columns(uint8_t state[16]) {
     uint8_t Tmp, Tm, t;
+    
     for (int i = 0; i < 4; i++) {
         t = state[4 * i + 0];
         Tmp = state[4 * i + 0] ^ state[4 * i + 1] ^ state[4 * i + 2] ^ state[4 * i + 3];
@@ -177,6 +179,7 @@ static void mix_columns(uint8_t state[16]) {
 
 static void inv_mix_columns(uint8_t state[16]) {
     uint8_t a, b, c, d;
+    
     for (int i = 0; i < 4; i++) {
         a = state[4 * i + 0];
         b = state[4 * i + 1];
@@ -215,7 +218,6 @@ static void cipher(uint8_t state[16], const uint8_t * __restrict round_key) {
 }
 
 static void decipher(uint8_t state[16], const uint8_t * __restrict round_key) {
-
     // Add the First round key to the state before starting the rounds.
     add_round_key(14, state, round_key);
 
@@ -304,6 +306,7 @@ static void key_expansion(uint8_t * __restrict round_key, const uint8_t * __rest
 
 static void double_arr(uint8_t s[16]) {
     const uint8_t first_bit = -(s[0] >> 7);
+    
     for (int i = 0; i < 15; i++) {
         s[i] &= 127;
         s[i] <<= 1;

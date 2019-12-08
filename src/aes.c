@@ -693,7 +693,7 @@ static const uint32_t rcon[] = {
  *
  * @return	the number of rounds for the given cipher key size.
  */
-int KeySetupEnc(uint32_t rk[/*4*(Nr + 1)*/], const uint8_t cipherKey[], int keyBits) {
+int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey, int keyBits) {
     int i = 0;
     uint32_t temp;
 
@@ -779,12 +779,13 @@ int KeySetupEnc(uint32_t rk[/*4*(Nr + 1)*/], const uint8_t cipherKey[], int keyB
  *
  * @return	the number of rounds for the given cipher key size.
  */
-int KeySetupDec(uint32_t rk[/*4*(Nr + 1)*/], const uint8_t cipherKey[], int keyBits) {
+int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey, int keyBits) {
     int Nr, i, j;
     uint32_t temp;
 
     /* expand the cipher key: */
-    Nr = KeySetupEnc(rk, cipherKey, keyBits);
+    Nr = AES_KeySetupEnc(rk, cipherKey, keyBits);
+    
     /* invert the order of the round keys: */
     for (i = 0, j = 4 * Nr; i < j; i += 4, j -= 4) {
         temp = rk[i ];
@@ -827,7 +828,7 @@ int KeySetupDec(uint32_t rk[/*4*(Nr + 1)*/], const uint8_t cipherKey[], int keyB
     return Nr;
 }
 
-void Encrypt(const uint32_t rk[], int Nr, const uint8_t pt[16], uint8_t ct[16]) {
+void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
     int r;
 
@@ -935,7 +936,7 @@ void Encrypt(const uint32_t rk[], int Nr, const uint8_t pt[16], uint8_t ct[16]) 
     PUTU32(ct + 12, s3);
 }
 
-void Decrypt(const uint32_t rk[], int Nr, const uint8_t ct[16], uint8_t pt[16]) {
+void AES_Decrypt(const uint32_t *rk, int Nr, const uint8_t *ct, uint8_t *pt) {
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
     int r;
 
