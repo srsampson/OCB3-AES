@@ -1,9 +1,10 @@
 ### AES OCB
-OCB mode (Offset Codebook Mode) is an authenticated encryption mode of operation for cryptographic block ciphers. It is based on the Integrity Aware Parallelizable Mode (IAPM).
+OCB mode (Offset Codebook Mode) is an authenticated encryption mode of operation for cryptographic block ciphers. It is based on the Integrity Aware Parallelizable Mode (IAPM). Authenticated encryption provides both confidentiality and authenticity
+within a single scheme.
 
 This is a C implementation of AES OCB3. Full name: ```AEAD_AES_256_OCB_TAGLEN128```
 
-This code is fixed for 256 bit keys. It has TAGLEN of 128 bits.
+This C code is fixed for 256 bit keys, and TAGLEN of 128 bits. The nonce must be 96 bits.
 
 OCB mode was designed to provide both message authentication and privacy. It is essentially a scheme for integrating a Message Authentication Code (MAC) into the operation of a block cipher. In this way, OCB mode avoids the need to use two systems: a MAC for authentication and encryption for privacy. This results in lower computational cost compared to using separate encryption and authentication functions.
 
