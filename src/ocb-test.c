@@ -12,7 +12,7 @@ const uint8_t de[3] = "DE";
 
 int main(void) {
     const uint8_t* errdesc;
-    uint32_t itr = 0, diff, alen, mlen;
+    uint32_t itr = 0, alen, mlen;
     uint64_t _key[4], _nonce[2], _associated_data[8], _message[8],
             _out1[10], _out2[10];
     uint8_t * key = (uint8_t *) _key, * nonce = (uint8_t *) _nonce, * associated_data = (uint8_t *) _associated_data,
@@ -30,17 +30,17 @@ test:
     alen = 64;
     mlen = 64;
 
-    for (int i = 0; i < 32; i += 8)
+    for (int i = 0; i < 16; i++)
+        nonce[i] = rand();
+    
+    for (int i = 0; i < 32; i++)
         key[i] = rand();
 
-    for (int i = 0; i < 64; i += 8)
+    for (int i = 0; i < 64; i++)
         associated_data[i] = rand();
 
-    for (int i = 0; i < 64; i += 8)
+    for (int i = 0; i < 64; i++)
         message[i] = rand();
-
-    nonce[0] = rand();
-    nonce[8] = rand();
 
     ocb_encrypt(key, nonce, 12, message, mlen, associated_data, alen, out1);
     ae_clear(&ctx);
@@ -51,21 +51,20 @@ test:
         return 1;
     }
 
-    diff = 0;
+    uint8_t diff = 0;
+    
     for (int i = 0, k = mlen + 16; i < k; i++)
         diff ^= out1[i];
 
     for (int i = 0, k = mlen + 16; i < k; i++)
         diff ^= out2[i];
 
-    if (diff) {
+    if (diff != 0) {
         errdesc = en;
         goto fail;
     }
 
-    if (ocb_decrypt(key, nonce, 12,
-            out1, mlen, associated_data,
-            alen, out2)) {
+    if (ocb_decrypt(key, nonce, 12, out1, mlen, associated_data, alen, out2)) {
         errdesc = ck;
         goto fail;
     }
@@ -76,7 +75,7 @@ test:
     for (int i = 0; i < mlen; i++)
         diff ^= out2[i];
 
-    if (diff) {
+    if (diff != 0) {
         errdesc = de;
         goto fail;
     }

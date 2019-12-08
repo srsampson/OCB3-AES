@@ -205,7 +205,7 @@ static void ocb3_decrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
 /* 32-bit SSE2 and Altivec systems need to be forced to allocate memory
    on 16-byte alignments. (I believe all major 64-bit systems do already.) */
 
-ae_ctx* ae_allocate(void) {
+ae_ctx *ae_allocate(void) {
     return (ae_ctx *) malloc(sizeof (ae_ctx));
 }
 

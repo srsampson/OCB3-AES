@@ -240,7 +240,7 @@ static void decipher(uint8_t state[16], const uint8_t * __restrict round_key) {
 
 static void key_expansion(uint8_t * __restrict round_key, const uint8_t * __restrict key) {
     int i, j, k;
-    uint8_t tempa[4]; // Used for the column/row operations
+    uint8_t tempa[4] = {0x00, 0x00, 0x00, 0x00}; // Used for the column/row operations
 
     // The first round key is the key itself.
     ocb_memcpy(round_key, key, 32);
@@ -381,7 +381,7 @@ void hash(const uint8_t * __restrict round_key,
 void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce,
         int nonce_length, const uint8_t * __restrict message,
         int message_length, const uint8_t * __restrict associated_data,
-        int associated_data_length, uint8_t * out) {
+        int associated_data_length, uint8_t *out) {
     const uint32_t m = message_length / 16;
     const uint32_t l_length =
             (message_length > associated_data_length) ?
@@ -400,18 +400,23 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
     double_arr(l[0]);
     for (int i = 0; i < 16; i++)
         l_dollar[i] = l[0][i];
+    
     double_arr(l[0]);
     // L_0 ^^^
     for (uint32_t i = 1; i < l_length; i++) {
         for (int k = 0; k < 16; k++)
             l[i][k] = l[i - 1][k];
+        
         double_arr(l[i]);
     }
+    
     uint8_t offset[24] = {0};
     int index = 15 - nonce_length;
+    
     offset[index++] |= 1;
     for (uint32_t i = 0; i < nonce_length; index++, i++)
         offset[index] = nonce[i];
+    
     uint32_t bottom = offset[15] % 64;
     offset[15] ^= bottom;
     cipher(offset, round_key);
