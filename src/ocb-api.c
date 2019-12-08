@@ -225,13 +225,10 @@ int ae_ctx_sizeof(void) {
 
 /* ----------------------------------------------------------------------- */
 
-int ae_init(ae_ctx *ctx, const uint8_t *key, int nonce_len) {
+int ae_init(ae_ctx *ctx, const uint8_t *key) {
     uint32_t i;
     block tmp_blk;
 
-    if (nonce_len != 12)
-        return AE_NOT_SUPPORTED;
-    
     /* Initialize encryption & decryption keys */
     
     AES_KeySetupEnc((&ctx->encrypt_key)->rd_key, key, 256);
@@ -273,7 +270,6 @@ static block gen_offset_from_nonce(ae_ctx *ctx, const void *nonce) {
         block bl;
     } tmp;
     uint32_t idx;
-    uint32_t tagadd;
 
     /* Replace cached nonce Top if needed */
 

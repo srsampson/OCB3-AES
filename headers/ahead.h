@@ -75,7 +75,7 @@ typedef struct _ae_ctx ae_ctx;
  *
  * ----------------------------------------------------------------------- */
 
-ae_ctx* ae_allocate(void); /* Allocate ae_ctx,                    */
+ae_ctx *ae_allocate(void); /* Allocate ae_ctx,                    */
 void ae_free(ae_ctx *); /* Deallocate ae_ctx struct            */
 void ae_clear(ae_ctx *); /* Undo initialization                 */
 int ae_ctx_sizeof(void); /* Return sizeof(ae_ctx)               */
@@ -93,7 +93,7 @@ int ae_ctx_sizeof(void); /* Return sizeof(ae_ctx)               */
  *
  * ----------------------------------------------------------------------- */
 
-int ae_init(ae_ctx *, const uint8_t *, int);
+int ae_init(ae_ctx *, const uint8_t *);
 
 /* --------------------------------------------------------------------------
  *

@@ -21,6 +21,28 @@
 #define ocb_ntz(a) __builtin_ctz((uint32_t) a)
 #define ocb_ntz_round(a) ((a) == 0) ? 0 : (sizeof(uint32_t) * 8 - __builtin_clz((uint32_t) (a)) - 1)
 #define ocb_memcpy(a,b,c) __builtin_memcpy(a,b,c)
+#else
+// largest x such that 2^x | a - n for a - n > 0
+
+static inline uint32_t ocb_ntz_round(uint32_t a) {
+    int k = 0;
+    
+    while (a >>= 1)
+        k++;
+    
+    return (uint32_t) k;
+}
+
+// largest x such that 2^x | a
+
+static inline uint32_t ocb_ntz(uint32_t a) {
+    int k = 0;
+    
+    while ((a % 2 == 0) && (a >>= 1))
+        k++;
+    
+    return (uint32_t) k;
+}
 #endif
 
 static const uint8_t sbox[256] = {
@@ -317,26 +339,6 @@ static void double_arr(uint8_t s[16]) {
     s[15] ^= first_bit & 135;
 }
 
-#ifndef USE_BUILTIN
-// largest x such that 2^x | a - n for a - n > 0
-
-static inline uint32_t ocb_ntz_round(uint32_t a) {
-    int k = 0;
-    while (a >>= 1)
-        k++;
-    return (uint32_t) k;
-}
-
-// largest x such that 2^x | a
-
-static inline uint32_t ocb_ntz(uint32_t a) {
-    int k = 0;
-    while ((a % 2 == 0) && (a >>= 1))
-        k++;
-    return (uint32_t) k;
-}
-#endif
-
 static inline void xor_16(uint8_t * __restrict a, const uint8_t * __restrict b) {
     for (int i = 0; i < 16; i++)
         a[i] ^= b[i];
@@ -379,9 +381,8 @@ void hash(const uint8_t * __restrict round_key,
 }
 
 void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce,
-        int nonce_length, const uint8_t * __restrict message,
-        int message_length, const uint8_t * __restrict associated_data,
-        int associated_data_length, uint8_t *out) {
+        const uint8_t * __restrict message, int message_length,
+        const uint8_t * __restrict associated_data, int associated_data_length, uint8_t *out) {
     const uint32_t m = message_length / 16;
     const uint32_t l_length =
             (message_length > associated_data_length) ?
@@ -411,22 +412,25 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
     }
     
     uint8_t offset[24] = {0};
-    int index = 15 - nonce_length;
+    int index = 3;               // 15 - 12 nonce = 12 bytes / 96 bits
     
     offset[index++] |= 1;
-    for (uint32_t i = 0; i < nonce_length; index++, i++)
+    for (int i = 0; i < 12; index++, i++)
         offset[index] = nonce[i];
     
     uint32_t bottom = offset[15] % 64;
     offset[15] ^= bottom;
     cipher(offset, round_key);
+    
     for (int i = 0; i < 8; i++)
         offset[16 + i] = offset[i];
+    
     for (int i = 0; i < 8; i++)
         offset[16 + i] ^= offset[i + 1];
 
     const uint32_t shift = bottom / 8;
     const uint32_t bit_shift = bottom % 8;
+    
     for (int i = 0; i < 16; i++)
         offset[i] = ((offset[i + shift] << bit_shift) | (offset[i + shift + 1] >> (8 - bit_shift))) & 255;
 
@@ -450,16 +454,21 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
         xor_16(offset, l_asterisk);
         for (int i = 0; i < 16; i++)
             out[full_block_length + i] = offset[i];
+        
         cipher(&out[full_block_length], round_key);
         // ^^pad
         for (uint32_t i = 0; i < p_asterisk_length; i++)
             out[full_block_length + i] ^= message[full_block_length + i];
+        
         for (uint32_t i = 0; i < p_asterisk_length; i++)
             checksum[i] ^= message[full_block_length + i];
+        
         checksum[p_asterisk_length] ^= 0x80;
     }
+    
     xor_16(checksum, offset);
     xor_16(checksum, l_dollar);
+    
     cipher(checksum, round_key);
 
     hash(round_key, associated_data, associated_data_length, l, l_asterisk, offset);
@@ -470,7 +479,7 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
 }
 
 int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce,
-        int nonce_length, const uint8_t * __restrict encrypted,
+        const uint8_t * __restrict encrypted,
         int encrypted_length, const uint8_t * __restrict associated_data,
         int associated_data_length, uint8_t * __restrict out) {
     const uint32_t m = encrypted_length / 16;
@@ -499,20 +508,25 @@ int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce
         double_arr(l[i]);
     }
     uint8_t offset[24] = {0};
-    int index = 15 - nonce_length;
+    int index = 3;                  // 15 - nonce_length (12)
+    
     offset[index++] |= 1;
-    for (uint32_t i = 0; i < nonce_length; index++, i++)
+    for (uint32_t i = 0; i < 12; index++, i++)
         offset[index] = nonce[i];
+    
     uint32_t bottom = offset[15] % 64;
     offset[15] ^= bottom;
     cipher(offset, round_key);
+    
     for (int i = 0; i < 8; i++)
         offset[16 + i] = offset[i];
+    
     for (int i = 0; i < 8; i++)
         offset[16 + i] ^= offset[i + 1];
 
     const uint32_t shift = bottom / 8;
     const uint32_t bit_shift = bottom % 8;
+    
     for (int i = 0; i < 16; i++)
         offset[i] = ((offset[i + shift] << bit_shift) | (offset[i + shift + 1] >> (8 - bit_shift))) & 255;
 
@@ -536,19 +550,25 @@ int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce
     if (c_asterisk_length > 0) {
         xor_16(offset, l_asterisk);
         uint8_t pad[16];
+        
         for (int i = 0; i < 16; i++)
             pad[i] = offset[i];
+        
         cipher(pad, round_key);
         // ^^pad
         for (uint32_t i = 0; i < c_asterisk_length; i++)
             pad[i] ^= encrypted[full_block_length + i];
+        
         for (uint32_t i = 0; i < c_asterisk_length; i++)
             out[full_block_length + i] = pad[i];
+        
         // ^^p_asterisk
         for (uint32_t i = 0; i < c_asterisk_length; i++)
             checksum[i] ^= pad[i];
+        
         checksum[c_asterisk_length] ^= 0x80;
     }
+    
     xor_16(checksum, offset);
     xor_16(checksum, l_dollar);
     cipher(checksum, round_key);
