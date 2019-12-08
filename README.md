@@ -24,7 +24,7 @@ sys	0m0.000s
 Which looks like about 104 micro-seconds per loop in user time.
 
 ### Nonce Requirements
-It is crucial during encryption, that you don't repeat a nonce. Nonces do not need to be secret, and a counter may be used. If two parties send OCB-encrypted plaintexts to one another using the same key, then the nonces used by the two parties must be partitioned so that no nonce used by one party could be used by the other. Using a random number to start the count, is more secure than always starting at the same count.
+The nonce is fixed size at 96 bits (12 bytes). It is crucial during encryption, that you don't repeat a nonce. Nonces do not need to be secret, and a counter may be used. If two parties send OCB-encrypted plaintexts to one another using the same key, then the nonces used by the two parties must be partitioned so that no nonce used by one party could be used by the other.
 
 ### Encryption: OCB-ENCRYPT
 This function computes a ciphertext (which includes a bundled authentication tag) when given a plaintext, associated data, nonce, and key. For each invocation of OCB-ENCRYPT using the same key, the value of the nonce must be distinct.
