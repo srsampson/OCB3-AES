@@ -1,4 +1,4 @@
-### AES OCB
+### OCB3 AES
 OCB mode (Offset Codebook Mode) is an authenticated encryption mode of operation for cryptographic block ciphers. It is based on the Integrity Aware Parallelizable Mode (IAPM). Authenticated encryption provides both confidentiality and authenticity
 within a single scheme.
 
