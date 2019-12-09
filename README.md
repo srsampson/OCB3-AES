@@ -18,11 +18,11 @@ OCB3 performance overhead is minimal compared to classical, non-authenticating m
 Starting...
 100k TESTS PASS!
 
-real	0m10.408s
-user	0m10.407s
+real	0m10.503s
+user	0m10.503s
 sys	0m0.000s
 ```
-Which looks like about 104 micro-seconds per loop in user time.
+Which looks like about 105 micro-seconds per loop in user time.
 
 ### Nonce Requirements
 The nonce is fixed size at 96 bits (12 bytes). It is crucial during encryption, that you don't repeat a nonce. Nonces do not need to be secret, and a counter may be used. If two parties send OCB-encrypted plaintexts to one another using the same key, then the nonces used by the two parties must be partitioned so that no nonce used by one party could be used by the other.
