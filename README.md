@@ -13,16 +13,16 @@ When an Authenticated Encryption (AE) scheme allows for the authentication at th
 OCB3 is an AEAD scheme that depends on the AES Electronic Code Book (ECB) block cipher. 
 
 ### Performance
-OCB3 performance overhead is minimal compared to classical, non-authenticating modes like CBC. The test program executes 100,000 loops. Output from a Core I5 CPU was:
+OCB3 performance overhead is minimal compared to classical, non-authenticating modes like CBC. The test program executes 100,000 loops. It was compiled with the ```-O3``` option which makes it run about 10 times faster. Output from a Core I5 CPU was:
 ```
 Starting...
 100k TESTS PASS!
 
-real	0m10.503s
-user	0m10.503s
-sys	0m0.000s
+real	0m1.217s
+user	0m1.209s
+sys	0m0.008s
 ```
-Which looks like about 105 micro-seconds per loop in user time.
+Which looks like about 12 micro-seconds per loop in user time.
 
 ### Nonce Requirements
 The nonce is fixed size at 96 bits (12 bytes). It is crucial during encryption, that you don't repeat a nonce. Nonces do not need to be secret, and a counter may be used. If two parties send OCB-encrypted plaintexts to one another using the same key, then the nonces used by the two parties must be partitioned so that no nonce used by one party could be used by the other.
