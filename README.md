@@ -13,7 +13,7 @@ When an Authenticated Encryption (AE) scheme allows for the authentication at th
 OCB3 is an AEAD scheme that depends on the AES Electronic Code Book (ECB) block cipher. 
 
 ### Performance
-OCB3 performance overhead is minimal compared to classical, non-authenticating modes like CBC. The test program executes 100,000 loops. It was compiled with the ```-O3``` option which makes it run about 10 times faster. Output from a Core I5 CPU was:
+OCB3 performance overhead is minimal compared to classical, non-authenticating modes like CBC. The test program executes 100,000 loops. It was compiled with the ```-O3``` option which makes it run about 10 times faster. Output from a Core I3 CPU was:
 ```
 Starting...
 100k TESTS PASS!
