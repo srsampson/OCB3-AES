@@ -35,3 +35,6 @@ This function computes a plaintext when given a ciphertext, associated data, non
    
 ### Processing Associated Data: HASH
 OCB has the ability to authenticate unencrypted associated data at the same time that it provides for authentication and encrypts a plaintext. The hash function is central to providing this functionality. If an application has no associated data, then the associated data should be considered to be the empty string. The hash function always returns zeros (128) when the associated data is the empty string.
+
+### NDVT (Narrowband Digital Voice Terminal)
+This software is being developed for a fixed AES key size (256 bits) secure voice and data terminal. This application needs authentication and encryption. The complete nonce (96 bits) will not be transmitted, but will include a group key (64 bits) that is distributed with the AES key. This way communication groups can be partitioned from each other for compartmentalized security, using the same modem.
