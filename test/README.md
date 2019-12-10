@@ -1,4 +1,4 @@
-##### Compiling ocb-test.c from command line
+#### Compiling ocb-test.c from command line
 To run this quick test by linking the dynamic library, use the following command:
 
 ```
