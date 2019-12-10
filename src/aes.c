@@ -693,7 +693,7 @@ static const uint32_t rcon[] = {
  *
  * @return	the number of rounds for the given cipher key size.
  */
-int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey, int keyBits) {
+int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey) {
     int i = 0;
     uint32_t temp;
 
@@ -701,90 +701,57 @@ int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey, int keyBits) {
     rk[1] = GETU32(cipherKey + 4);
     rk[2] = GETU32(cipherKey + 8);
     rk[3] = GETU32(cipherKey + 12);
-    if (keyBits == 128) {
-        for (;;) {
-            temp = rk[3];
-            rk[4] = rk[0] ^
-                    (Te4[(temp >> 16) & 0xff] & 0xff000000) ^
-                    (Te4[(temp >> 8) & 0xff] & 0x00ff0000) ^
-                    (Te4[(temp) & 0xff] & 0x0000ff00) ^
-                    (Te4[(temp >> 24) ] & 0x000000ff) ^
-                    rcon[i];
-            rk[5] = rk[1] ^ rk[4];
-            rk[6] = rk[2] ^ rk[5];
-            rk[7] = rk[3] ^ rk[6];
-            if (++i == 10) {
-                return 10;
-            }
-            rk += 4;
-        }
-    }
     rk[4] = GETU32(cipherKey + 16);
     rk[5] = GETU32(cipherKey + 20);
-    if (keyBits == 192) {
-        for (;;) {
-            temp = rk[ 5];
-            rk[ 6] = rk[ 0] ^
-                    (Te4[(temp >> 16) & 0xff] & 0xff000000) ^
-                    (Te4[(temp >> 8) & 0xff] & 0x00ff0000) ^
-                    (Te4[(temp) & 0xff] & 0x0000ff00) ^
-                    (Te4[(temp >> 24) ] & 0x000000ff) ^
-                    rcon[i];
-            rk[ 7] = rk[ 1] ^ rk[ 6];
-            rk[ 8] = rk[ 2] ^ rk[ 7];
-            rk[ 9] = rk[ 3] ^ rk[ 8];
-            if (++i == 8) {
-                return 12;
-            }
-            rk[10] = rk[ 4] ^ rk[ 9];
-            rk[11] = rk[ 5] ^ rk[10];
-            rk += 6;
-        }
-    }
     rk[6] = GETU32(cipherKey + 24);
     rk[7] = GETU32(cipherKey + 28);
-    if (keyBits == 256) {
-        for (;;) {
-            temp = rk[ 7];
-            rk[ 8] = rk[ 0] ^
-                    (Te4[(temp >> 16) & 0xff] & 0xff000000) ^
-                    (Te4[(temp >> 8) & 0xff] & 0x00ff0000) ^
-                    (Te4[(temp) & 0xff] & 0x0000ff00) ^
-                    (Te4[(temp >> 24) ] & 0x000000ff) ^
-                    rcon[i];
-            rk[ 9] = rk[ 1] ^ rk[ 8];
-            rk[10] = rk[ 2] ^ rk[ 9];
-            rk[11] = rk[ 3] ^ rk[10];
-            if (++i == 7) {
-                return 14;
-            }
-            temp = rk[11];
-            rk[12] = rk[ 4] ^
-                    (Te4[(temp >> 24) ] & 0xff000000) ^
-                    (Te4[(temp >> 16) & 0xff] & 0x00ff0000) ^
-                    (Te4[(temp >> 8) & 0xff] & 0x0000ff00) ^
-                    (Te4[(temp) & 0xff] & 0x000000ff);
-            rk[13] = rk[ 5] ^ rk[12];
-            rk[14] = rk[ 6] ^ rk[13];
-            rk[15] = rk[ 7] ^ rk[14];
 
-            rk += 8;
+    for (;;) {
+        temp = rk[7];
+        
+        rk[ 8] = rk[ 0] ^
+            (Te4[(temp >> 16) & 0xff] & 0xff000000) ^
+            (Te4[(temp >> 8) & 0xff] & 0x00ff0000) ^
+            (Te4[(temp) & 0xff] & 0x0000ff00) ^
+            (Te4[(temp >> 24) ] & 0x000000ff) ^ rcon[i];
+        
+        rk[ 9] = rk[ 1] ^ rk[8];
+        rk[10] = rk[ 2] ^ rk[9];
+        rk[11] = rk[ 3] ^ rk[10];
+        
+        if (++i == 7) {
+            return 14;
         }
+        
+        temp = rk[11];
+        
+        rk[12] = rk[ 4] ^
+            (Te4[(temp >> 24) ] & 0xff000000) ^
+            (Te4[(temp >> 16) & 0xff] & 0x00ff0000) ^
+            (Te4[(temp >> 8) & 0xff] & 0x0000ff00) ^
+            (Te4[(temp) & 0xff] & 0x000000ff);
+        
+        rk[13] = rk[ 5] ^ rk[12];
+        rk[14] = rk[ 6] ^ rk[13];
+        rk[15] = rk[ 7] ^ rk[14];
+
+        rk += 8;
     }
+
     return 0;
 }
 
 /**
  * Expand the cipher key into the decryption key schedule.
  *
- * @return	the number of rounds for the given cipher key size.
+ * @return	the number of rounds for the 256 key size.
  */
-int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey, int keyBits) {
+int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey) {
     int Nr, i, j;
     uint32_t temp;
 
     /* expand the cipher key: */
-    Nr = AES_KeySetupEnc(rk, cipherKey, keyBits);
+    Nr = AES_KeySetupEnc(rk, cipherKey);
     
     /* invert the order of the round keys: */
     for (i = 0, j = 4 * Nr; i < j; i += 4, j -= 4) {
@@ -825,12 +792,12 @@ int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey, int keyBits) {
                 Td2[Te4[(rk[3] >> 8) & 0xff] & 0xff] ^
                 Td3[Te4[(rk[3]) & 0xff] & 0xff];
     }
+    
     return Nr;
 }
 
 void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
-    int r;
 
     /*
      * map byte array block to cipher state
@@ -844,7 +811,8 @@ void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
     /*
      * Nr - 1 full rounds:
      */
-    r = Nr >> 1;
+    int r = Nr >> 1;
+    
     for (;;) {
         t0 =
                 Te0[(s0 >> 24) ] ^
@@ -872,6 +840,7 @@ void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
                 rk[7];
 
         rk += 8;
+        
         if (--r == 0) {
             break;
         }
@@ -938,7 +907,6 @@ void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
 
 void AES_Decrypt(const uint32_t *rk, int Nr, const uint8_t *ct, uint8_t *pt) {
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
-    int r;
 
     /*
      * map byte array block to cipher state
@@ -952,7 +920,8 @@ void AES_Decrypt(const uint32_t *rk, int Nr, const uint8_t *ct, uint8_t *pt) {
     /*
      * Nr - 1 full rounds:
      */
-    r = Nr >> 1;
+    int r = Nr >> 1;
+    
     for (;;) {
         t0 =
                 Td0[(s0 >> 24) ] ^
@@ -980,6 +949,7 @@ void AES_Decrypt(const uint32_t *rk, int Nr, const uint8_t *ct, uint8_t *pt) {
                 rk[7];
 
         rk += 8;
+        
         if (--r == 0) {
             break;
         }

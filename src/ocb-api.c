@@ -52,11 +52,8 @@
 #define OCB_TAG_LEN         16
 #define BPI                  4  /* Number of blocks in buffer per ECB call */
 
-/* During encryption and decryption, various "L values" are required.
-/  The L values can be precomputed during initialization (requiring extra
-/  space in ae_ctx), generated as needed (slightly slowing encryption and
-/  decryption), or some combination of the two. L_TABLE_SZ specifies how many
-/  L values to precompute. L_TABLE_SZ must be at least 3. L_TABLE_SZ*16 bytes
+/* L_TABLE_SZ specifies how many L values to precompute.
+/  L_TABLE_SZ must be at least 3. L_TABLE_SZ*16 bytes
 /  are used for L values in ae_ctx. Plaintext and ciphertexts shorter than
 /  2^L_TABLE_SZ blocks need no L values calculated dynamically.            */
 #define L_TABLE_SZ          16
@@ -77,6 +74,13 @@
 #define ocb_memcpy(a,b,c) __builtin_memcpy(a,b,c)
 #else
 #define ocb_memcpy(a,b,c) memcpy(a,b,c)
+
+static inline uint64_t bswap64(uint64_t _x) {
+    return ((_x >> 56) | ((_x >> 40) & 0xff00) | ((_x >> 24) & 0xff0000) |
+        ((_x >> 8) & 0xff000000) | ((_x << 8) & ((uint64_t) 0xff << 32)) |
+        ((_x << 24) & ((uint64_t)0xff << 40)) |
+        ((_x << 40) & ((uint64_t)0xff << 48)) | ((_x << 56)));
+}
 
 // count trailing zeroes in x; for each block in the message,
 // ntz(blocknumber) selects an L_n value for the "offset"
@@ -143,11 +147,13 @@ int ntz(uint64_t x) {
 static inline block xor_block(block x, block y) {
     x.l ^= y.l;
     x.r ^= y.r;
+    
     return x;
 }
 
 static inline block zero_block(void) {
     const block t = {0, 0};
+    
     return t;
 }
 
@@ -231,8 +237,8 @@ int ae_init(ae_ctx *ctx, const uint8_t *key) {
 
     /* Initialize encryption & decryption keys */
     
-    AES_KeySetupEnc((&ctx->encrypt_key)->rd_key, key, 256);
-    AES_KeySetupDec((&ctx->decrypt_key)->rd_key, key, 256);
+    AES_KeySetupEnc((&ctx->encrypt_key)->rd_key, key);
+    AES_KeySetupDec((&ctx->decrypt_key)->rd_key, key);
 
     /* Zero things that need zeroing */
     ctx->cached_Top = ctx->ad_checksum = zero_block();

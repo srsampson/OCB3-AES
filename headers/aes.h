@@ -19,8 +19,8 @@ extern "C" {
     
 #include <stdint.h>
 
-int AES_KeySetupEnc(uint32_t *, const uint8_t *, int);
-int AES_KeySetupDec(uint32_t *, const uint8_t *, int);
+int AES_KeySetupEnc(uint32_t *, const uint8_t *);
+int AES_KeySetupDec(uint32_t *, const uint8_t *);
 
 void AES_Encrypt(const uint32_t *, int, const uint8_t *, uint8_t *);
 void AES_Decrypt(const uint32_t *, int, const uint8_t *, uint8_t *);
