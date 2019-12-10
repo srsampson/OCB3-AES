@@ -43,6 +43,8 @@ static inline uint32_t ocb_ntz(uint32_t a) {
     
     return (uint32_t) k;
 }
+
+#define ocb_memcpy(a,b,c) memcpy(a,b,c)
 #endif
 
 static const uint8_t sbox[256] = {
@@ -220,36 +222,36 @@ static void inv_mix_columns(uint8_t state[16]) {
 
 static void cipher(uint8_t state[16], const uint8_t * __restrict round_key) {
     // Add the First round key to the state before starting the rounds.
-    add_round_key(0, state, round_key);
+    add_round_key((uint8_t) 0, state, round_key);
 
     // There will be Nr rounds.
     // The first Nr-1 rounds are identical.
     // These Nr-1 rounds are executed in the loop below.
-    for (uint8_t round = 1; round < 14; round++) {
+    for (int round = 1; round < 14; round++) {
         sub_bytes(state);
         shift_rows(state);
         mix_columns(state);
-        add_round_key(round, state, round_key);
+        add_round_key((uint8_t) round, state, round_key);
     }
 
     // The last round is given below.
     // The MixColumns function is not here in the last round.
     sub_bytes(state);
     shift_rows(state);
-    add_round_key(14, state, round_key);
+    add_round_key((uint8_t) 14, state, round_key);
 }
 
 static void decipher(uint8_t state[16], const uint8_t * __restrict round_key) {
     // Add the First round key to the state before starting the rounds.
-    add_round_key(14, state, round_key);
+    add_round_key((uint8_t) 14, state, round_key);
 
     // There will be Nr rounds.
     // The first Nr-1 rounds are identical.
     // These Nr-1 rounds are executed in the loop below.
-    for (uint8_t round = 13; round > 0; round--) {
+    for (int round = 13; round > 0; round--) {
         inv_shift_rows(state);
         inv_sub_bytes(state);
-        add_round_key(round, state, round_key);
+        add_round_key((uint8_t) round, state, round_key);
         inv_mix_columns(state);
     }
 
@@ -257,7 +259,7 @@ static void decipher(uint8_t state[16], const uint8_t * __restrict round_key) {
     // The MixColumns function is not here in the last round.
     inv_shift_rows(state);
     inv_sub_bytes(state);
-    add_round_key(0, state, round_key);
+    add_round_key((uint8_t) 0, state, round_key);
 }
 
 static void key_expansion(uint8_t * __restrict round_key, const uint8_t * __restrict key) {
@@ -359,23 +361,33 @@ void hash(const uint8_t * __restrict round_key,
     for (int i = 0; i < m; i++) {
         for (int k = 0; k < 16; k++)
             cipher_temp[k] = associated_data[i * 16 + k];
+        
         xor_16(offset, l[ocb_ntz(i + 1)]);
         xor_16(cipher_temp, offset);
+        
         cipher(cipher_temp, round_key);
+        
         xor_16(out, cipher_temp);
     }
 
     const uint32_t a_asterisk_length = (uint32_t) (associated_data_length % 16);
     const uint32_t full_block_length = associated_data_length ^ a_asterisk_length;
+    
     if (a_asterisk_length > 0) {
         xor_16(offset, l_asterisk);
+        
         for (uint32_t i = 0; i < a_asterisk_length; i++)
             cipher_temp[i] = associated_data[full_block_length + i];
+        
         cipher_temp[a_asterisk_length] = 0x80;
+        
         for (int i = a_asterisk_length + 1; i < 16; i++)
             cipher_temp[i] = 0;
+        
         xor_16(cipher_temp, offset);
+        
         cipher(cipher_temp, round_key);
+        
         xor_16(out, cipher_temp);
     }
 }
@@ -388,8 +400,7 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
     const uint32_t m = message_length / 16;
     const uint32_t l_length =
             (message_length > associated_data_length) ?
-            (ocb_ntz_round(m) + 1) :
-            (ocb_ntz_round(associated_data_length / 16) + 1);
+            (ocb_ntz_round(m) + 1) : (ocb_ntz_round(associated_data_length / 16) + 1);
     uint8_t l[l_length][16];
     uint8_t l_asterisk[16] = {0};
     uint8_t l_dollar[16];
@@ -507,9 +518,10 @@ int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce
         l_dollar[i] = l[0][i];
     double_arr(l[0]);
     // L_0 ^^^
-    for (uint32_t i = 1; i < l_length; i++) {
+    for (int i = 1; i < l_length; i++) {
         for (int k = 0; k < 16; k++)
             l[i][k] = l[i - 1][k];
+        
         double_arr(l[i]);
     }
     uint8_t offset[24] = {0};

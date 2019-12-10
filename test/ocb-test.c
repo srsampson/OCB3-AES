@@ -52,6 +52,8 @@ test:
     ae_clear(&ctx);
     ae_init(&ctx, key);
 
+    /* tag len set to NULL for final */
+
     if (ae_encrypt(&ctx, nonce, message, MSG_MAX, associated_data, AD_MAX, out2, NULL, 1) <= 0) {
         puts("Reference error.");
         return 1;

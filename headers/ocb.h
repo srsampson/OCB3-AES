@@ -7,7 +7,13 @@ extern "C" {
 #include <stdint.h>
     
 #define USE_BUILTIN
-#define NONCE_MAX   15
+
+
+/* Authentication tag length */
+
+#define OCB_TAG_LEN     16  /* 128 bits */
+#define NONCE_MAX       15  /* 96 bits used of 120 */
+#define ROUNDS          14
 
 void hash(const uint8_t *, const uint8_t *, int, const uint8_t [][16],
         const uint8_t *, uint8_t *);

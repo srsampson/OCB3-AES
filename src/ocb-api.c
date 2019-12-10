@@ -41,22 +41,14 @@
 #include <stdint.h>
 
 #include "ahead.h"
+#include "ocb.h"
 #include "aes.h"
 
 /* ----------------------------------------------------------------------- */
 /* User configuration options                                              */
 /* ----------------------------------------------------------------------- */
 
-/* Authentication tag length */
-
-#define OCB_TAG_LEN         16
-#define BPI                  4  /* Number of blocks in buffer per ECB call */
-
-/* L_TABLE_SZ specifies how many L values to precompute.
-/  L_TABLE_SZ must be at least 3. L_TABLE_SZ*16 bytes
-/  are used for L values in ae_ctx. Plaintext and ciphertexts shorter than
-/  2^L_TABLE_SZ blocks need no L values calculated dynamically.            */
-#define L_TABLE_SZ          16
+#define BPI                 4  /* Number of blocks in buffer per ECB call  */
 
 /* ----------------------------------------------------------------------- */
 /* L table lookup (or on-the-fly generation)                               */
@@ -193,23 +185,20 @@ static inline block double_block(block b) {
 static void ocb3_encrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
     while (nblks) {
         --nblks;
-        AES_Encrypt(key->rd_key, 14, (uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks));
+        AES_Encrypt(key->rd_key, ROUNDS, (uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks));
     }
 }
 
 static void ocb3_decrypt_blks(block *blks, uint32_t nblks, AES_KEY *key) {
     while (nblks) {
         --nblks;
-        AES_Decrypt(key->rd_key, 14, (uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks));
+        AES_Decrypt(key->rd_key, ROUNDS, (uint8_t *) (blks + nblks), (uint8_t *) (blks + nblks));
     }
 }
 
 /* ----------------------------------------------------------------------- */
 /* Public functions                                                        */
 /* ----------------------------------------------------------------------- */
-
-/* 32-bit SSE2 and Altivec systems need to be forced to allocate memory
-   on 16-byte alignments. (I believe all major 64-bit systems do already.) */
 
 ae_ctx *ae_allocate(void) {
     return (ae_ctx *) malloc(sizeof (ae_ctx));
@@ -232,7 +221,6 @@ int ae_ctx_sizeof(void) {
 /* ----------------------------------------------------------------------- */
 
 int ae_init(ae_ctx *ctx, const uint8_t *key) {
-    uint32_t i;
     block tmp_blk;
 
     /* Initialize encryption & decryption keys */
@@ -253,7 +241,7 @@ int ae_init(ae_ctx *ctx, const uint8_t *key) {
     tmp_blk = double_block(tmp_blk);
     ctx->L[0] = swap_block(tmp_blk);
     
-    for (i = 1; i < L_TABLE_SZ; i++) {
+    for (int i = 1; i < L_TABLE_SZ; i++) {
         tmp_blk = double_block(tmp_blk);
         ctx->L[i] = swap_block(tmp_blk);
     }
@@ -265,29 +253,20 @@ int ae_init(ae_ctx *ctx, const uint8_t *key) {
 
 static block gen_offset_from_nonce(ae_ctx *ctx, const void *nonce) {
 
-    const union {
-        uint32_t x;
-        uint8_t endian;
-    } little = {1};
-
     union {
         uint32_t u32[4];
         uint8_t u8[16];
         block bl;
     } tmp;
-    uint32_t idx;
 
     /* Replace cached nonce Top if needed */
 
-    if (little.endian)
-        tmp.u32[0] = 0x01000000 + ((OCB_TAG_LEN * 8 % 128) << 1);
-    else
-        tmp.u32[0] = 0x00000001 + ((OCB_TAG_LEN * 8 % 128) << 25);
-
+    tmp.u32[0] = 0x01000000 + ((OCB_TAG_LEN * 8 % 128) << 1);
     tmp.u32[1] = ((uint32_t *) nonce)[0];
     tmp.u32[2] = ((uint32_t *) nonce)[1];
     tmp.u32[3] = ((uint32_t *) nonce)[2];
-    idx = (uint32_t) (tmp.u8[15] & 0x3f); /* Get low 6 bits of nonce  */
+    
+    uint32_t idx = (uint32_t) (tmp.u8[15] & 0x3f); /* Get low 6 bits of nonce  */
     tmp.u8[15] = tmp.u8[15] & 0xc0; /* Zero low 6 bits of nonce */
     
     if (unequal_blocks(tmp.bl, ctx->cached_Top)) { /* Cached?       */
@@ -295,13 +274,9 @@ static block gen_offset_from_nonce(ae_ctx *ctx, const void *nonce) {
 
         AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, tmp.u8, (uint8_t *) & ctx->KtopStr);
         
-        if (little.endian) { /* Make Register Correct    */
-            ctx->KtopStr[0] = bswap64(ctx->KtopStr[0]);
-            ctx->KtopStr[1] = bswap64(ctx->KtopStr[1]);
-        }
-        
-        ctx->KtopStr[2] = ctx->KtopStr[0] ^
-                (ctx->KtopStr[0] << 8) ^ (ctx->KtopStr[1] >> 56);
+        ctx->KtopStr[0] = bswap64(ctx->KtopStr[0]);
+        ctx->KtopStr[1] = bswap64(ctx->KtopStr[1]);
+        ctx->KtopStr[2] = ctx->KtopStr[0] ^ (ctx->KtopStr[0] << 8) ^ (ctx->KtopStr[1] >> 56);
     }
     
     return gen_offset(ctx->KtopStr, idx);
@@ -544,7 +519,11 @@ int ae_encrypt(ae_ctx * ctx,
         /* Tag is placed at the correct location
          */
         if (tag) {
+#if (OCB_TAG_LEN == 16)
             *(block *) tag = offset;
+#else
+            ocb_memcpy((char *)tag, &offset, OCB_TAG_LEN);
+#endif
         } else {
             ocb_memcpy((char *) ct + pt_len, &offset, OCB_TAG_LEN);
             pt_len += OCB_TAG_LEN;
@@ -593,6 +572,7 @@ int ae_decrypt(ae_ctx * ctx,
         uint8_t u8[16];
         block bl;
     } tmp;
+    
     block offset, checksum;
     uint32_t i, k;
     block *ctp = (block *) ct;
@@ -607,6 +587,7 @@ int ae_decrypt(ae_ctx * ctx,
         ctx->offset = gen_offset_from_nonce(ctx, nonce);
         ctx->ad_offset = ctx->checksum = zero_block();
         ctx->ad_blocks_processed = ctx->blocks_processed = 0;
+        
         if (ad_len >= 0)
             ctx->ad_checksum = zero_block();
     }
@@ -619,10 +600,12 @@ int ae_decrypt(ae_ctx * ctx,
     offset = ctx->offset;
     checksum = ctx->checksum;
     i = ct_len / (BPI * 16);
+    
     if (i) {
         block oa[BPI];
         uint32_t block_num = ctx->blocks_processed;
         oa[BPI - 1] = offset;
+        
         do {
             block ta[BPI];
             block_num += BPI;
@@ -649,6 +632,7 @@ int ae_decrypt(ae_ctx * ctx,
             ptp += BPI;
             ctp += BPI;
         } while (--i);
+        
         ctx->offset = offset = oa[BPI - 1];
         ctx->blocks_processed = block_num;
         ctx->checksum = checksum;
@@ -660,6 +644,7 @@ int ae_decrypt(ae_ctx * ctx,
         /* Process remaining plaintext and compute its tag contribution    */
         uint32_t remaining = ((uint32_t) ct_len) % (BPI * 16);
         k = 0; /* How many blocks in ta[] need ECBing */
+        
         if (remaining) {
             if (remaining >= 32) {
                 oa[k] = xor_block(offset, ctx->L[0]);
@@ -679,7 +664,7 @@ int ae_decrypt(ae_ctx * ctx,
                 block pad;
                 offset = xor_block(offset, ctx->Lstar);
                 
-                AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, (uint8_t *) & offset, tmp.u8);
+                AES_Encrypt((&ctx->encrypt_key)->rd_key, ROUNDS, (uint8_t *) & offset, tmp.u8);
                 
                 pad = tmp.bl;
                 ocb_memcpy(tmp.u8, ctp + k, remaining);
@@ -710,19 +695,18 @@ int ae_decrypt(ae_ctx * ctx,
         tmp.bl = xor_block(tmp.bl, ctx->ad_checksum); /* Full tag */
 
         /* Compare with proposed tag, change ct_len if invalid */
-        if (tag) {
-            if (unequal_blocks(tmp.bl, *(block *) tag))
-                ct_len = AE_INVALID;
-        } else {
-            int len = OCB_TAG_LEN;
 
-            if (tag) {
-                if (constant_time_memcmp(tag, tmp.u8, len) != 0)
-                    ct_len = AE_INVALID;
-            } else {
-                if (constant_time_memcmp((char *) ct + ct_len, tmp.u8, len) != 0)
-                    ct_len = AE_INVALID;
-            }
+        if (tag) {
+#if (OCB_TAG_LEN == 16)
+            if (unequal_blocks(tmp.bl, *(block *)tag))
+                ct_len = AE_INVALID;
+#else
+            if (constant_time_memcmp(tag, tmp.u8, OCB_TAG_LEN) != 0)
+                ct_len = AE_INVALID;
+#endif
+        } else {
+            if (constant_time_memcmp((char *) ct + ct_len, tmp.u8, OCB_TAG_LEN) != 0)
+                ct_len = AE_INVALID;
         }
     }
 
