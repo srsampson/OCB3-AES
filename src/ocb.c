@@ -347,7 +347,7 @@ static inline void xor_16(uint8_t * __restrict a, const uint8_t * __restrict b) 
         a[i] ^= b[i];
 }
 
-void hash(const uint8_t * __restrict round_key,
+static void hash(const uint8_t * __restrict round_key,
         const uint8_t * __restrict associated_data,
         int associated_data_length, const uint8_t l[][16],
         const uint8_t * __restrict l_asterisk, uint8_t * __restrict out) {
