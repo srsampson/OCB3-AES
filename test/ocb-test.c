@@ -35,6 +35,8 @@ int main(void) {
 
     puts("Starting...");
     int itr = 1;
+    int fail = 0;
+
 test:
 
     for (int i = 0; i < (NONCE_MAX - 3); i++)
@@ -43,13 +45,17 @@ test:
     for (int i = 0; i < KEY_MAX; i++)
         key[i] = rand();
 
-    for (int i = 0; i < AD_MAX; i++)
-        associated_data[i] = rand();
-
     for (int i = 0; i < MSG_MAX; i++)
         message[i] = rand();
 
-    ocb_encrypt(key, nonce, message, MSG_MAX, associated_data, AD_MAX, out1);
+    if (itr == 2) {
+        ocb_encrypt(key, nonce, message, MSG_MAX, NULL, 0, out1);
+    } else {
+        for (int i = 0; i < AD_MAX; i++)
+            associated_data[i] = rand();
+
+        ocb_encrypt(key, nonce, message, MSG_MAX, associated_data, AD_MAX, out1);
+    }
 
     ae_clear(&ctx);
     ae_init(&ctx, key);
@@ -58,9 +64,16 @@ test:
 
     /* tag len set to NULL for final */
 
-    if (ae_encrypt(&ctx, nonce, message, MSG_MAX, associated_data, AD_MAX, out2, NULL, 1) <= 0) {
-        puts("Reference error.");
-        return 1;
+    if (itr == 2) {
+        if (ae_encrypt(&ctx, nonce, message, MSG_MAX, NULL, 0, out2, NULL, 1) <= 0) {
+            puts("Reference error.");
+            return 1;
+        }
+    } else {
+        if (ae_encrypt(&ctx, nonce, message, MSG_MAX, associated_data, AD_MAX, out2, NULL, 1) <= 0) {
+            puts("Reference error.");
+            return 1;
+        }
     }
 
     uint8_t diff = 0;
@@ -76,9 +89,16 @@ test:
         goto fail;
     }
 
-    if (ocb_decrypt(key, nonce, out1, MSG_MAX, associated_data, AD_MAX, out2)) {
-        errdesc = ck;
-        goto fail;
+    if (itr == 2) {
+        if (ocb_decrypt(key, nonce, out1, MSG_MAX, NULL, 0, out2)) {
+            errdesc = ck;
+            goto fail;
+        }
+    } else {
+        if (ocb_decrypt(key, nonce, out1, MSG_MAX, associated_data, AD_MAX, out2)) {
+            errdesc = ck;
+            goto fail;
+        }
     }
 
     for (int i = 0; i < MSG_MAX; i++)
@@ -95,6 +115,7 @@ test:
     if (0) {
 fail:
         printf("---TEST FAILED: %sCODE ERROR---\n", errdesc);
+        fail++;
     }
 
     printf("Key:\n");
@@ -107,8 +128,12 @@ fail:
         printf("%02X ", (uint32_t) nonce[i]);
 
     puts("\n\nAssociated data:");
-    for (int i = 0; i < AD_MAX; i++)
-        printf("%02X ", (uint32_t) associated_data[i]);
+    if (itr == 2) {
+            printf("NULL");
+    } else {
+        for (int i = 0; i < AD_MAX; i++)
+            printf("%02X ", (uint32_t) associated_data[i]);
+    }
 
     puts("\n\nMessage:");
     for (int i = 0; i < MSG_MAX; i++)
@@ -131,7 +156,7 @@ fail:
     if (itr++ != 2)
         goto test;
 
-    printf("\n%d TESTS PASS!\n\n", itr - 1);
+    printf("\n%d TESTS RUN, %d TESTS FAIL!\n\n", (itr - 1), fail);
 
     return 0;
 }

@@ -14,6 +14,7 @@
 // https://github.com/kokke/tiny-AES-c/blob/master/aes.c
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "ocb.h"
 
@@ -358,6 +359,9 @@ void hash(const uint8_t * __restrict round_key,
     for (int i = 0; i < 16; i++)
         out[i] = 0;
 
+    if (associated_data == NULL)
+        return;
+    
     for (int i = 0; i < m; i++) {
         for (int k = 0; k < 16; k++)
             cipher_temp[k] = associated_data[i * 16 + k];
