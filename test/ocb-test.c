@@ -18,7 +18,6 @@ const char de[3] = "DE";
 
 int main(void) {
     const char *errdesc;
-    int itr = 0;
     uint8_t key[KEY_MAX] = {0};
     uint8_t nonce[NONCE_MAX] = {0};              // Max 120 bits
     uint8_t associated_data[AD_MAX] = {0};
@@ -33,7 +32,9 @@ int main(void) {
         puts("RNG failed.");
         return 1;
     }
+
     puts("Starting...");
+    int itr = 1;
 test:
 
     for (int i = 0; i < (NONCE_MAX - 3); i++)
@@ -49,8 +50,11 @@ test:
         message[i] = rand();
 
     ocb_encrypt(key, nonce, message, MSG_MAX, associated_data, AD_MAX, out1);
+
     ae_clear(&ctx);
     ae_init(&ctx, key);
+
+    printf("\nIteration: %d\n\n", itr);
 
     /* tag len set to NULL for final */
 
@@ -90,32 +94,44 @@ test:
 
     if (0) {
 fail:
-        printf("---TEST FAILED: %sCODE ERROR---\nKey:\n", errdesc);
-
-        for (int i = 0; i < KEY_MAX; i++)
-            printf("%.2x, ", (uint32_t) key[i]);
-
-        printf("\n\nIteration: %d\n", itr);
-        puts("\n\nNonce:");
-        for (int i = 0; i < (NONCE_MAX - 3); i++)
-            printf("%.2x, ", (uint32_t) nonce[i]);
-
-        puts("\n\nAssociated data:");
-        for (int i = 0; i < AD_MAX; i++)
-            printf("%.2x, ", (uint32_t) associated_data[i]);
-
-        puts("\n\nMessage:");
-        for (int i = 0; i < MSG_MAX; i++)
-            printf("%.2x, ", (uint32_t) message[i]);
-
-        puts("");
-        return 1;
+        printf("---TEST FAILED: %sCODE ERROR---\n", errdesc);
     }
 
-    if (itr++ != 100000)
+    printf("Key:\n");
+
+    for (int i = 0; i < KEY_MAX; i++)
+        printf("%02X ", (uint32_t) key[i]);
+
+    puts("\n\nNonce:");
+    for (int i = 0; i < (NONCE_MAX - 3); i++)
+        printf("%02X ", (uint32_t) nonce[i]);
+
+    puts("\n\nAssociated data:");
+    for (int i = 0; i < AD_MAX; i++)
+        printf("%02X ", (uint32_t) associated_data[i]);
+
+    puts("\n\nMessage:");
+    for (int i = 0; i < MSG_MAX; i++)
+        printf("%02X ", (uint32_t) message[i]);
+
+    puts("\n\nEncrypted Message:");
+    for (int i = 0; i < (MSG_MAX + TAG_LEN); i++)
+        printf("%02X ", (uint32_t) out1[i]);
+
+    puts("\n\nDecrypted Message:");
+    for (int i = 0; i < MSG_MAX; i++)
+        printf("%02X ", (uint32_t) out2[i]);
+
+    puts("\n\nTAG:");
+    for (int i = MSG_MAX; i < (MSG_MAX + TAG_LEN); i++)
+        printf("%02X ", (uint32_t) out2[i]);
+
+    puts("\n");
+
+    if (itr++ != 2)
         goto test;
 
-    puts("100k TESTS PASS!");
+    printf("\n%d TESTS PASS!\n\n", itr - 1);
 
     return 0;
 }
