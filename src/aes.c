@@ -82,6 +82,7 @@ static const uint32_t Te0[256] = {
     0x824141c3U, 0x299999b0U, 0x5a2d2d77U, 0x1e0f0f11U,
     0x7bb0b0cbU, 0xa85454fcU, 0x6dbbbbd6U, 0x2c16163aU,
 };
+
 static const uint32_t Te1[256] = {
     0xa5c66363U, 0x84f87c7cU, 0x99ee7777U, 0x8df67b7bU,
     0x0dfff2f2U, 0xbdd66b6bU, 0xb1de6f6fU, 0x5491c5c5U,
@@ -148,6 +149,7 @@ static const uint32_t Te1[256] = {
     0xc3824141U, 0xb0299999U, 0x775a2d2dU, 0x111e0f0fU,
     0xcb7bb0b0U, 0xfca85454U, 0xd66dbbbbU, 0x3a2c1616U,
 };
+
 static const uint32_t Te2[256] = {
     0x63a5c663U, 0x7c84f87cU, 0x7799ee77U, 0x7b8df67bU,
     0xf20dfff2U, 0x6bbdd66bU, 0x6fb1de6fU, 0xc55491c5U,
@@ -214,8 +216,8 @@ static const uint32_t Te2[256] = {
     0x41c38241U, 0x99b02999U, 0x2d775a2dU, 0x0f111e0fU,
     0xb0cb7bb0U, 0x54fca854U, 0xbbd66dbbU, 0x163a2c16U,
 };
-static const uint32_t Te3[256] = {
 
+static const uint32_t Te3[256] = {
     0x6363a5c6U, 0x7c7c84f8U, 0x777799eeU, 0x7b7b8df6U,
     0xf2f20dffU, 0x6b6bbdd6U, 0x6f6fb1deU, 0xc5c55491U,
     0x30305060U, 0x01010302U, 0x6767a9ceU, 0x2b2b7d56U,
@@ -281,6 +283,7 @@ static const uint32_t Te3[256] = {
     0x4141c382U, 0x9999b029U, 0x2d2d775aU, 0x0f0f111eU,
     0xb0b0cb7bU, 0x5454fca8U, 0xbbbbd66dU, 0x16163a2cU,
 };
+
 static const uint32_t Te4[256] = {
     0x63636363U, 0x7c7c7c7cU, 0x77777777U, 0x7b7b7b7bU,
     0xf2f2f2f2U, 0x6b6b6b6bU, 0x6f6f6f6fU, 0xc5c5c5c5U,
@@ -347,6 +350,7 @@ static const uint32_t Te4[256] = {
     0x41414141U, 0x99999999U, 0x2d2d2d2dU, 0x0f0f0f0fU,
     0xb0b0b0b0U, 0x54545454U, 0xbbbbbbbbU, 0x16161616U,
 };
+
 static const uint32_t Td0[256] = {
     0x51f4a750U, 0x7e416553U, 0x1a17a4c3U, 0x3a275e96U,
     0x3bab6bcbU, 0x1f9d45f1U, 0xacfa58abU, 0x4be30393U,
@@ -413,6 +417,7 @@ static const uint32_t Td0[256] = {
     0x39a80171U, 0x080cb3deU, 0xd8b4e49cU, 0x6456c190U,
     0x7bcb8461U, 0xd532b670U, 0x486c5c74U, 0xd0b85742U,
 };
+
 static const uint32_t Td1[256] = {
     0x5051f4a7U, 0x537e4165U, 0xc31a17a4U, 0x963a275eU,
     0xcb3bab6bU, 0xf11f9d45U, 0xabacfa58U, 0x934be303U,
@@ -479,6 +484,7 @@ static const uint32_t Td1[256] = {
     0x7139a801U, 0xde080cb3U, 0x9cd8b4e4U, 0x906456c1U,
     0x617bcb84U, 0x70d532b6U, 0x74486c5cU, 0x42d0b857U,
 };
+
 static const uint32_t Td2[256] = {
     0xa75051f4U, 0x65537e41U, 0xa4c31a17U, 0x5e963a27U,
     0x6bcb3babU, 0x45f11f9dU, 0x58abacfaU, 0x03934be3U,
@@ -545,6 +551,7 @@ static const uint32_t Td2[256] = {
     0x017139a8U, 0xb3de080cU, 0xe49cd8b4U, 0xc1906456U,
     0x84617bcbU, 0xb670d532U, 0x5c74486cU, 0x5742d0b8U,
 };
+
 static const uint32_t Td3[256] = {
     0xf4a75051U, 0x4165537eU, 0x17a4c31aU, 0x275e963aU,
     0xab6bcb3bU, 0x9d45f11fU, 0xfa58abacU, 0xe303934bU,
@@ -695,7 +702,6 @@ static const uint32_t rcon[] = {
  */
 int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey) {
     int i = 0;
-    uint32_t temp;
 
     rk[0] = GETU32(cipherKey);
     rk[1] = GETU32(cipherKey + 4);
@@ -707,7 +713,7 @@ int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey) {
     rk[7] = GETU32(cipherKey + 28);
 
     for (;;) {
-        temp = rk[7];
+        uint32_t temp = rk[7];
         
         rk[ 8] = rk[ 0] ^
             (Te4[(temp >> 16) & 0xff] & 0xff000000) ^
@@ -747,15 +753,12 @@ int AES_KeySetupEnc(uint32_t *rk, const uint8_t *cipherKey) {
  * @return	the number of rounds for the 256 key size.
  */
 int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey) {
-    int Nr, i, j;
-    uint32_t temp;
-
     /* expand the cipher key: */
-    Nr = AES_KeySetupEnc(rk, cipherKey);
+    int Nr = AES_KeySetupEnc(rk, cipherKey);
     
     /* invert the order of the round keys: */
-    for (i = 0, j = 4 * Nr; i < j; i += 4, j -= 4) {
-        temp = rk[i ];
+    for (int i = 0, j = 4 * Nr; i < j; i += 4, j -= 4) {
+        uint32_t temp = rk[i ];
         rk[i ] = rk[j ];
         rk[j ] = temp;
         temp = rk[i + 1];
@@ -769,7 +772,7 @@ int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey) {
         rk[j + 3] = temp;
     }
     /* apply the inverse MixColumn transform to all round keys but the first and the last: */
-    for (i = 1; i < Nr; i++) {
+    for (int i = 1; i < Nr; i++) {
         rk += 4;
         rk[0] =
                 Td0[Te4[(rk[0] >> 24) ] & 0xff] ^
@@ -797,16 +800,16 @@ int AES_KeySetupDec(uint32_t *rk, const uint8_t *cipherKey) {
 }
 
 void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
-    uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
+    uint32_t t0, t1, t2, t3;
 
     /*
      * map byte array block to cipher state
      * and add initial round key:
      */
-    s0 = GETU32(pt) ^ rk[0];
-    s1 = GETU32(pt + 4) ^ rk[1];
-    s2 = GETU32(pt + 8) ^ rk[2];
-    s3 = GETU32(pt + 12) ^ rk[3];
+    uint32_t s0 = GETU32(pt) ^ rk[0];
+    uint32_t s1 = GETU32(pt + 4) ^ rk[1];
+    uint32_t s2 = GETU32(pt + 8) ^ rk[2];
+    uint32_t s3 = GETU32(pt + 12) ^ rk[3];
 
     /*
      * Nr - 1 full rounds:
@@ -906,16 +909,16 @@ void AES_Encrypt(const uint32_t *rk, int Nr, const uint8_t *pt, uint8_t *ct) {
 }
 
 void AES_Decrypt(const uint32_t *rk, int Nr, const uint8_t *ct, uint8_t *pt) {
-    uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
+    uint32_t t0, t1, t2, t3;
 
     /*
      * map byte array block to cipher state
      * and add initial round key:
      */
-    s0 = GETU32(ct) ^ rk[0];
-    s1 = GETU32(ct + 4) ^ rk[1];
-    s2 = GETU32(ct + 8) ^ rk[2];
-    s3 = GETU32(ct + 12) ^ rk[3];
+    uint32_t s0 = GETU32(ct) ^ rk[0];
+    uint32_t s1 = GETU32(ct + 4) ^ rk[1];
+    uint32_t s2 = GETU32(ct + 8) ^ rk[2];
+    uint32_t s3 = GETU32(ct + 12) ^ rk[3];
 
     /*
      * Nr - 1 full rounds:

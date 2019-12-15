@@ -38,6 +38,10 @@ int main(void) {
     int fail = 0;
 
 test:
+#ifndef PRINT
+    while (itr < 100000) {
+        itr++;
+#endif
 
     for (int i = 0; i < (NONCE_MAX - 3); i++)
         nonce[i] = rand();
@@ -60,7 +64,9 @@ test:
     ae_clear(&ctx);
     ae_init(&ctx, key);
 
+#ifdef PRINT
     printf("\nIteration: %d\n\n", itr);
+#endif
 
     /* tag len set to NULL for final */
 
@@ -118,6 +124,7 @@ fail:
         fail++;
     }
 
+#ifdef PRINT
     printf("Key:\n");
 
     for (int i = 0; i < KEY_MAX; i++)
@@ -155,6 +162,9 @@ fail:
 
     if (itr++ != 2)
         goto test;
+#else
+    }
+#endif
 
     printf("\n%d TESTS RUN, %d TESTS FAIL!\n\n", (itr - 1), fail);
 

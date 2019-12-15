@@ -221,8 +221,6 @@ int ae_ctx_sizeof(void) {
 /* ----------------------------------------------------------------------- */
 
 int ae_init(ae_ctx *ctx, const uint8_t *key) {
-    block tmp_blk;
-
     /* Initialize encryption & decryption keys */
     
     AES_KeySetupEnc((&ctx->encrypt_key)->rd_key, key);
@@ -235,7 +233,7 @@ int ae_init(ae_ctx *ctx, const uint8_t *key) {
     /* Compute key-dependent values */
     AES_Encrypt((&ctx->encrypt_key)->rd_key, 14, (uint8_t *) & ctx->cached_Top, (uint8_t *) & ctx->Lstar);
 
-    tmp_blk = swap_block(ctx->Lstar);
+    block tmp_blk = swap_block(ctx->Lstar);
     tmp_blk = double_block(tmp_blk);
     ctx->Ldollar = swap_block(tmp_blk);
     tmp_blk = double_block(tmp_blk);
@@ -290,13 +288,11 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
         block bl;
     } tmp;
     
-    block ad_offset, ad_checksum;
-    const block * adp = (block *) ad;
-    uint32_t i, k, tz, remaining;
+    const block *adp = (block *) ad;
 
-    ad_offset = ctx->ad_offset;
-    ad_checksum = ctx->ad_checksum;
-    i = ad_len / (BPI * 16);
+    block ad_offset = ctx->ad_offset;
+    block ad_checksum = ctx->ad_checksum;
+    int i = ad_len / (BPI * 16);
     
     if (i) {
         uint32_t ad_block_num = ctx->ad_blocks_processed;
@@ -305,7 +301,7 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
             block ta[BPI], oa[BPI];
 
             ad_block_num += BPI;
-            tz = ntz(ad_block_num);
+            uint32_t tz = ntz(ad_block_num);
 
             oa[0] = xor_block(ad_offset, ctx->L[0]);
             ta[0] = xor_block(oa[0], adp[0]);
@@ -336,9 +332,10 @@ static void process_ad(ae_ctx *ctx, const void *ad, int ad_len, int final) {
         block ta[BPI];
 
         /* Process remaining associated data, compute its tag contribution */
-        remaining = ((uint32_t) ad_len) % (BPI * 16);
+        uint32_t remaining = ((uint32_t) ad_len) % (BPI * 16);
+        
         if (remaining) {
-            k = 0;
+            int k = 0;
 
             if (remaining >= 32) {
                 ad_offset = xor_block(ad_offset, ctx->L[0]);
@@ -397,8 +394,6 @@ int ae_encrypt(ae_ctx * ctx,
         block bl;
     } tmp;
 
-    block offset, checksum;
-    uint32_t i, k;
     block * ctp = (block *) ct;
     const block * ptp = (block *) pt;
 
@@ -417,9 +412,9 @@ int ae_encrypt(ae_ctx * ctx,
         process_ad(ctx, ad, ad_len, final);
 
     /* Encrypt plaintext data BPI blocks at a time */
-    offset = ctx->offset;
-    checksum = ctx->checksum;
-    i = pt_len / (BPI * 16);
+    block offset = ctx->offset;
+    block checksum = ctx->checksum;
+    int i = pt_len / (BPI * 16);
 
     if (i) {
         block oa[BPI];
@@ -465,7 +460,7 @@ int ae_encrypt(ae_ctx * ctx,
 
         /* Process remaining plaintext and compute its tag contribution    */
         uint32_t remaining = ((uint32_t) pt_len) % (BPI * 16);
-        k = 0; /* How many blocks in ta[] need ECBing */
+        int k = 0; /* How many blocks in ta[] need ECBing */
 
         if (remaining) {
             if (remaining >= 32) {
@@ -546,9 +541,8 @@ static int constant_time_memcmp(const void *av, const void *bv, size_t n) {
     const uint8_t *a = (const uint8_t *) av;
     const uint8_t *b = (const uint8_t *) bv;
     uint8_t result = 0;
-    size_t i;
 
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         result |= *a ^ *b;
         a++;
         b++;
@@ -573,8 +567,6 @@ int ae_decrypt(ae_ctx * ctx,
         block bl;
     } tmp;
     
-    block offset, checksum;
-    uint32_t i, k;
     block *ctp = (block *) ct;
     block *ptp = (block *) pt;
 
@@ -597,9 +589,9 @@ int ae_decrypt(ae_ctx * ctx,
         process_ad(ctx, ad, ad_len, final);
 
     /* Encrypt plaintext data BPI blocks at a time */
-    offset = ctx->offset;
-    checksum = ctx->checksum;
-    i = ct_len / (BPI * 16);
+    block offset = ctx->offset;
+    block checksum = ctx->checksum;
+    int i = ct_len / (BPI * 16);
     
     if (i) {
         block oa[BPI];
@@ -643,7 +635,7 @@ int ae_decrypt(ae_ctx * ctx,
 
         /* Process remaining plaintext and compute its tag contribution    */
         uint32_t remaining = ((uint32_t) ct_len) % (BPI * 16);
-        k = 0; /* How many blocks in ta[] need ECBing */
+        int k = 0; /* How many blocks in ta[] need ECBing */
         
         if (remaining) {
             if (remaining >= 32) {

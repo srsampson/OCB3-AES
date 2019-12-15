@@ -1,17 +1,7 @@
-// AES OCB Licenses: http://web.cs.ucdavis.edu/~rogaway/ocb/license.htm
-// Applied license: License 1
-// Found at: http://web.cs.ucdavis.edu/~rogaway/ocb/license1.pdf
-// OCB FAQ: http://www.cs.ucdavis.edu/~rogaway/ocb/ocb-faq.htm
-
-// The source code is derived from this, except the blockcipher functions:
-// https://tools.ietf.org/pdf/rfc7253.pdf
-
-// For the curious:
-// Unneeded extra: https://csrc.nist.gov/csrc/media/publications/fips/197/final/documents/fips-197.pdf
-// More extra: https://link.springer.com/content/pdf/10.1007%2F978-3-642-21702-9_18.pdf
-
-// Cipher functions are taken from (Public domain)
-// https://github.com/kokke/tiny-AES-c/blob/master/aes.c
+/*
+ * ocb.c
+ * 
+ */
 
 #include <stdint.h>
 #include <stddef.h>
@@ -27,10 +17,10 @@
 
 static inline uint32_t ocb_ntz_round(uint32_t a) {
     int k = 0;
-    
+
     while (a >>= 1)
         k++;
-    
+
     return (uint32_t) k;
 }
 
@@ -38,10 +28,10 @@ static inline uint32_t ocb_ntz_round(uint32_t a) {
 
 static inline uint32_t ocb_ntz(uint32_t a) {
     int k = 0;
-    
+
     while ((a % 2 == 0) && (a >>= 1))
         k++;
-    
+
     return (uint32_t) k;
 }
 
@@ -107,10 +97,9 @@ static void inv_sub_bytes(uint8_t state[16]) {
 // Offset = Row number. So the first row is not shifted.
 
 static void shift_rows(uint8_t state[16]) {
-    uint8_t temp;
-
     // Rotate first row 1 columns to left
-    temp = state[0 * 4 + 1];
+    uint8_t temp = state[0 * 4 + 1];
+    
     state[0 * 4 + 1] = state[1 * 4 + 1];
     state[1 * 4 + 1] = state[2 * 4 + 1];
     state[2 * 4 + 1] = state[3 * 4 + 1];
@@ -118,15 +107,18 @@ static void shift_rows(uint8_t state[16]) {
 
     // Rotate second row 2 columns to left
     temp = state[0 * 4 + 2];
+    
     state[0 * 4 + 2] = state[2 * 4 + 2];
     state[2 * 4 + 2] = temp;
 
     temp = state[1 * 4 + 2];
+    
     state[1 * 4 + 2] = state[3 * 4 + 2];
     state[3 * 4 + 2] = temp;
 
     // Rotate third row 3 columns to left
     temp = state[0 * 4 + 3];
+    
     state[0 * 4 + 3] = state[3 * 4 + 3];
     state[3 * 4 + 3] = state[2 * 4 + 3];
     state[2 * 4 + 3] = state[1 * 4 + 3];
@@ -134,10 +126,9 @@ static void shift_rows(uint8_t state[16]) {
 }
 
 static void inv_shift_rows(uint8_t state[16]) {
-    uint8_t temp;
-
     // Rotate first row 1 columns to right
-    temp = state[3 * 4 + 1];
+    uint8_t temp = state[3 * 4 + 1];
+    
     state[3 * 4 + 1] = state[2 * 4 + 1];
     state[2 * 4 + 1] = state[1 * 4 + 1];
     state[1 * 4 + 1] = state[0 * 4 + 1];
@@ -145,15 +136,18 @@ static void inv_shift_rows(uint8_t state[16]) {
 
     // Rotate second row 2 columns to right
     temp = state[0 * 4 + 2];
+    
     state[0 * 4 + 2] = state[2 * 4 + 2];
     state[2 * 4 + 2] = temp;
 
     temp = state[1 * 4 + 2];
+    
     state[1 * 4 + 2] = state[3 * 4 + 2];
     state[3 * 4 + 2] = temp;
 
     // Rotate third row 3 columns to right
     temp = state[0 * 4 + 3];
+    
     state[0 * 4 + 3] = state[1 * 4 + 3];
     state[1 * 4 + 3] = state[2 * 4 + 3];
     state[2 * 4 + 3] = state[3 * 4 + 3];
@@ -182,12 +176,11 @@ static inline uint8_t Multiply(uint8_t x, uint8_t y) {
 // MixColumns function mixes the columns of the state matrix
 
 static void mix_columns(uint8_t state[16]) {
-    uint8_t Tmp, Tm, t;
-    
     for (int i = 0; i < 4; i++) {
-        t = state[4 * i + 0];
-        Tmp = state[4 * i + 0] ^ state[4 * i + 1] ^ state[4 * i + 2] ^ state[4 * i + 3];
-        Tm = state[4 * i + 0] ^ state[4 * i + 1];
+        uint8_t t = state[4 * i + 0];
+        uint8_t Tmp = state[4 * i + 0] ^ state[4 * i + 1] ^ state[4 * i + 2] ^ state[4 * i + 3];
+        uint8_t Tm = state[4 * i + 0] ^ state[4 * i + 1];
+        
         Tm = xtime(Tm);
         state[4 * i + 0] ^= Tm ^ Tmp;
         Tm = state[4 * i + 1] ^ state[4 * i + 2];
@@ -203,13 +196,11 @@ static void mix_columns(uint8_t state[16]) {
 }
 
 static void inv_mix_columns(uint8_t state[16]) {
-    uint8_t a, b, c, d;
-    
     for (int i = 0; i < 4; i++) {
-        a = state[4 * i + 0];
-        b = state[4 * i + 1];
-        c = state[4 * i + 2];
-        d = state[4 * i + 3];
+        uint8_t a = state[4 * i + 0];
+        uint8_t b = state[4 * i + 1];
+        uint8_t c = state[4 * i + 2];
+        uint8_t d = state[4 * i + 3];
 
         state[4 * i + 0] = Multiply(a, 0x0e) ^ Multiply(b, 0x0b) ^ Multiply(c, 0x0d) ^ Multiply(d, 0x09);
         state[4 * i + 1] = Multiply(a, 0x09) ^ Multiply(b, 0x0e) ^ Multiply(c, 0x0b) ^ Multiply(d, 0x0d);
@@ -264,59 +255,54 @@ static void decipher(uint8_t state[16], const uint8_t * __restrict round_key) {
 }
 
 static void key_expansion(uint8_t * __restrict round_key, const uint8_t * __restrict key) {
-    int i, j, k;
     uint8_t tempa[4] = {0x00, 0x00, 0x00, 0x00}; // Used for the column/row operations
 
     // The first round key is the key itself.
     ocb_memcpy(round_key, key, 32);
 
     // All other round keys are found from the previous round keys.
-    for (i = 8; i < 4 * (14 + 1); ++i) {
-        {
-            k = (i - 1) * 4;
-            tempa[0] = round_key[k + 0];
-            tempa[1] = round_key[k + 1];
-            tempa[2] = round_key[k + 2];
-            tempa[3] = round_key[k + 3];
-        }
+    for (int i = 8; i < 4 * (14 + 1); ++i) {
+        int k = (i - 1) * 4;
+
+        tempa[0] = round_key[k + 0];
+        tempa[1] = round_key[k + 1];
+        tempa[2] = round_key[k + 2];
+        tempa[3] = round_key[k + 3];
 
         if (i % 8 == 0) {
             // This function shifts the 4 bytes in a word to the left once.
             // [a0,a1,a2,a3] becomes [a1,a2,a3,a0]
 
             // Function RotWord()
-            {
-                k = tempa[0];
-                tempa[0] = tempa[1];
-                tempa[1] = tempa[2];
-                tempa[2] = tempa[3];
-                tempa[3] = k;
-            }
+            k = tempa[0];
+            tempa[0] = tempa[1];
+            tempa[1] = tempa[2];
+            tempa[2] = tempa[3];
+            tempa[3] = k;
 
             // SubWord() is a function that takes a four-byte input word and
             // applies the S-box to each of the four bytes to produce an output word.
 
             // Function Subword()
-            {
-                tempa[0] = sbox[tempa[0]];
-                tempa[1] = sbox[tempa[1]];
-                tempa[2] = sbox[tempa[2]];
-                tempa[3] = sbox[tempa[3]];
-            }
+            tempa[0] = sbox[tempa[0]];
+            tempa[1] = sbox[tempa[1]];
+            tempa[2] = sbox[tempa[2]];
+            tempa[3] = sbox[tempa[3]];
 
             tempa[0] = tempa[0] ^ rcon[i / 8];
         }
+
         if (i % 8 == 4) {
             // Function Subword()
-            {
-                tempa[0] = sbox[tempa[0]];
-                tempa[1] = sbox[tempa[1]];
-                tempa[2] = sbox[tempa[2]];
-                tempa[3] = sbox[tempa[3]];
-            }
+            tempa[0] = sbox[tempa[0]];
+            tempa[1] = sbox[tempa[1]];
+            tempa[2] = sbox[tempa[2]];
+            tempa[3] = sbox[tempa[3]];
         }
-        j = i * 4;
+
+        int j = i * 4;
         k = (i - 8) * 4;
+
         round_key[j + 0] = round_key[k + 0];
         round_key[j + 1] = round_key[k + 1];
         round_key[j + 2] = round_key[k + 2];
@@ -331,12 +317,13 @@ static void key_expansion(uint8_t * __restrict round_key, const uint8_t * __rest
 
 static void double_arr(uint8_t s[16]) {
     const uint8_t first_bit = -(s[0] >> 7);
-    
+
     for (int i = 0; i < 15; i++) {
         s[i] &= 127;
         s[i] <<= 1;
         s[i] |= s[i + 1] >> 7;
     }
+
     s[15] &= 127;
     s[15] <<= 1;
     s[15] ^= first_bit & 135;
@@ -351,47 +338,45 @@ static void hash(const uint8_t * __restrict round_key,
         const uint8_t * __restrict associated_data,
         int associated_data_length, const uint8_t l[][16],
         const uint8_t * __restrict l_asterisk, uint8_t * __restrict out) {
-    const uint32_t m = associated_data_length / 16;
-
-    uint8_t offset[16] = {0};
-    uint8_t cipher_temp[16];
-
     for (int i = 0; i < 16; i++)
         out[i] = 0;
 
     if (associated_data == NULL)
         return;
-    
-    for (int i = 0; i < m; i++) {
+
+    uint8_t offset[16] = {0};
+    uint8_t cipher_temp[16];
+
+    for (int i = 0; i < (associated_data_length / 16); i++) {
         for (int k = 0; k < 16; k++)
             cipher_temp[k] = associated_data[i * 16 + k];
-        
+
         xor_16(offset, l[ocb_ntz(i + 1)]);
         xor_16(cipher_temp, offset);
-        
+
         cipher(cipher_temp, round_key);
-        
+
         xor_16(out, cipher_temp);
     }
 
     const uint32_t a_asterisk_length = (uint32_t) (associated_data_length % 16);
-    const uint32_t full_block_length = associated_data_length ^ a_asterisk_length;
-    
+    const uint32_t full_block_length = (uint32_t) associated_data_length ^ a_asterisk_length;
+
     if (a_asterisk_length > 0) {
         xor_16(offset, l_asterisk);
-        
-        for (uint32_t i = 0; i < a_asterisk_length; i++)
+
+        for (int i = 0; i < a_asterisk_length; i++)
             cipher_temp[i] = associated_data[full_block_length + i];
-        
+
         cipher_temp[a_asterisk_length] = 0x80;
-        
+
         for (int i = a_asterisk_length + 1; i < 16; i++)
             cipher_temp[i] = 0;
-        
+
         xor_16(cipher_temp, offset);
-        
+
         cipher(cipher_temp, round_key);
-        
+
         xor_16(out, cipher_temp);
     }
 }
@@ -401,54 +386,57 @@ static void hash(const uint8_t * __restrict round_key,
 void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce,
         const uint8_t * __restrict message, int message_length,
         const uint8_t * __restrict associated_data, int associated_data_length, uint8_t *out) {
-    const uint32_t m = message_length / 16;
-    const uint32_t l_length =
-            (message_length > associated_data_length) ?
+    const int m = message_length / 16;
+    const int l_length = ( message_length > associated_data_length) ?
             (ocb_ntz_round(m) + 1) : (ocb_ntz_round(associated_data_length / 16) + 1);
     uint8_t l[l_length][16];
     uint8_t l_asterisk[16] = {0};
     uint8_t l_dollar[16];
     uint8_t round_key[240];
-    key_expansion(round_key, key);
 
+    key_expansion(round_key, key);
     cipher(l_asterisk, round_key);
+
     // L_* ^^
     for (int i = 0; i < 16; i++)
         l[0][i] = l_asterisk[i];
+
     double_arr(l[0]);
+
     for (int i = 0; i < 16; i++)
         l_dollar[i] = l[0][i];
-    
+
     double_arr(l[0]);
     // L_0 ^^^
-    for (uint32_t i = 1; i < l_length; i++) {
+    for (int i = 1; i < l_length; i++) {
         for (int k = 0; k < 16; k++)
             l[i][k] = l[i - 1][k];
-        
+
         double_arr(l[i]);
     }
-    
+
     uint8_t offset[24] = {0};
     int index = NONCE_MAX - 12;               // 15 - 12 nonce = 12 bytes / 96 bits
-    
+
     offset[index++] |= 1;
+
     for (int i = 0; i < 12; index++, i++)
         offset[index] = nonce[i];
-    
-    uint32_t bottom = offset[15] % 64;
+
+    int bottom = offset[15] % 64;
     offset[15] ^= bottom;
-    
+
     cipher(offset, round_key);
-    
+
     for (int i = 0; i < 8; i++)
         offset[16 + i] = offset[i];
-    
+
     for (int i = 0; i < 8; i++)
         offset[16 + i] ^= offset[i + 1];
 
-    const uint32_t shift = bottom / 8;
-    const uint32_t bit_shift = bottom % 8;
-    
+    const int shift = bottom / 8;
+    const int bit_shift = bottom % 8;
+
     for (int i = 0; i < 16; i++)
         offset[i] = ((offset[i + shift] << bit_shift) | (offset[i + shift + 1] >> (8 - bit_shift))) & 255;
 
@@ -457,36 +445,39 @@ void ocb_encrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonc
     for (int i = 0; i < m; i++) {
         xor_16(offset, l[ocb_ntz(i + 1)]);
         xor_16(&out[i * 16], offset);
+
         cipher(&out[i * 16], round_key);
+
         xor_16(&out[i * 16], offset);
     }
 
     const uint32_t p_asterisk_length = (uint32_t) (message_length % 16);
-    const uint32_t full_block_length = message_length ^ p_asterisk_length;
+    const uint32_t full_block_length = (uint32_t) message_length ^ p_asterisk_length;
     uint8_t checksum[16] = {0};
 
-    for (uint32_t i = 0; i < full_block_length; i++)
+    for (int i = 0; i < full_block_length; i++)
         checksum[i % 16] ^= message[i];
 
     if (p_asterisk_length > 0) {
         xor_16(offset, l_asterisk);
+
         for (int i = 0; i < 16; i++)
             out[full_block_length + i] = offset[i];
-        
+
         cipher(&out[full_block_length], round_key);
         // ^^pad
-        for (uint32_t i = 0; i < p_asterisk_length; i++)
+        for (int i = 0; i < p_asterisk_length; i++)
             out[full_block_length + i] ^= message[full_block_length + i];
-        
-        for (uint32_t i = 0; i < p_asterisk_length; i++)
+
+        for (int i = 0; i < p_asterisk_length; i++)
             checksum[i] ^= message[full_block_length + i];
-        
+
         checksum[p_asterisk_length] ^= 0x80;
     }
-    
+
     xor_16(checksum, offset);
     xor_16(checksum, l_dollar);
-    
+
     cipher(checksum, round_key);
 
     hash(round_key, associated_data, associated_data_length, l, l_asterisk, offset);
@@ -511,96 +502,106 @@ int ocb_decrypt(const uint8_t * __restrict key, const uint8_t * __restrict nonce
     uint8_t l_asterisk[16] = {0};
     uint8_t l_dollar[16];
     uint8_t round_key[240];
-    key_expansion(round_key, key);
 
+    key_expansion(round_key, key);
     cipher(l_asterisk, round_key);
+
     // L_* ^^
     for (int i = 0; i < 16; i++)
         l[0][i] = l_asterisk[i];
+
     double_arr(l[0]);
+
     for (int i = 0; i < 16; i++)
         l_dollar[i] = l[0][i];
+
     double_arr(l[0]);
     // L_0 ^^^
     for (int i = 1; i < l_length; i++) {
         for (int k = 0; k < 16; k++)
             l[i][k] = l[i - 1][k];
-        
+
         double_arr(l[i]);
     }
+
     uint8_t offset[24] = {0};
     int index = NONCE_MAX - 12;             // 15 - nonce_length (12) = 3
-    
+
     offset[index++] |= 1;
-    for (uint32_t i = 0; i < 12; index++, i++)
+
+    for (int i = 0; i < 12; index++, i++)
         offset[index] = nonce[i];
-    
-    uint32_t bottom = offset[15] % 64;
+
+    int bottom = offset[15] % 64;
     offset[15] ^= bottom;
+
     cipher(offset, round_key);
-    
+
     for (int i = 0; i < 8; i++)
         offset[16 + i] = offset[i];
-    
+
     for (int i = 0; i < 8; i++)
         offset[16 + i] ^= offset[i + 1];
 
-    const uint32_t shift = bottom / 8;
-    const uint32_t bit_shift = bottom % 8;
-    
+    const int shift = bottom / 8;
+    const int bit_shift = bottom % 8;
+
     for (int i = 0; i < 16; i++)
         offset[i] = ((offset[i + shift] << bit_shift) | (offset[i + shift + 1] >> (8 - bit_shift))) & 255;
 
     const uint32_t c_asterisk_length = (uint32_t) (encrypted_length % 16);
-    const uint32_t full_block_length = encrypted_length ^ c_asterisk_length;
+    const uint32_t full_block_length = (uint32_t) encrypted_length ^ c_asterisk_length;
 
     ocb_memcpy(out, encrypted, full_block_length);
 
     for (int i = 0; i < m; i++) {
         xor_16(offset, l[ocb_ntz(i + 1)]);
         xor_16(&out[i * 16], offset);
+
         decipher(&out[i * 16], round_key);
+
         xor_16(&out[i * 16], offset);
     }
 
     uint8_t checksum[16] = {0};
 
-    for (uint32_t i = 0; i < full_block_length; i++)
+    for (int i = 0; i < full_block_length; i++)
         checksum[i % 16] ^= out[i];
 
     if (c_asterisk_length > 0) {
         xor_16(offset, l_asterisk);
         uint8_t pad[16];
-        
+
         for (int i = 0; i < 16; i++)
             pad[i] = offset[i];
-        
+
         cipher(pad, round_key);
         // ^^pad
-        for (uint32_t i = 0; i < c_asterisk_length; i++)
+        for (int i = 0; i < c_asterisk_length; i++)
             pad[i] ^= encrypted[full_block_length + i];
-        
-        for (uint32_t i = 0; i < c_asterisk_length; i++)
+
+        for (int i = 0; i < c_asterisk_length; i++)
             out[full_block_length + i] = pad[i];
-        
+
         // ^^p_asterisk
-        for (uint32_t i = 0; i < c_asterisk_length; i++)
+        for (int i = 0; i < c_asterisk_length; i++)
             checksum[i] ^= pad[i];
-        
+
         checksum[c_asterisk_length] ^= 0x80;
     }
-    
+
     xor_16(checksum, offset);
     xor_16(checksum, l_dollar);
+
     cipher(checksum, round_key);
-
     hash(round_key, associated_data, associated_data_length, l, l_asterisk, offset);
-    xor_16(checksum, offset);
 
+    xor_16(checksum, offset);
     xor_16(checksum, &encrypted[encrypted_length]);
+
     uint8_t diff = 0;
 
-    for (uint32_t i = 0; i < 16; i++)
+    for (int i = 0; i < 16; i++)
         diff |= checksum[i];
 
     return (uint32_t) diff;
