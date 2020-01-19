@@ -7,7 +7,7 @@ This C code is fixed for 256 bit keys, and TAGLEN of 128 bits. The nonce must be
 
 OCB3 mode provide both message authentication and privacy. It is essentially a scheme for integrating a Message Authentication Code (MAC) into the operation of a block cipher. Thus, it avoids the need for two separate systems: a MAC for authentication and encryption for privacy. Which improves execution speed.
 
-Note: When an Authenticated Encryption (AE) scheme allows for the authentication at the same time that a plaintext is being encrypted, the scheme is an Authenticated Encryption with Associated Data (AEAD) scheme. OCB3 is an AEAD scheme that depends on the AES Electronic Code Book (ECB) block cipher. 
+When an Authenticated Encryption (AE) scheme allows for Associated Data (AD) at the same time that a plaintext is being encrypted and authenticated, the scheme is an Authenticated Encryption with Associated Data (AEAD) scheme. OCB3 is an AEAD scheme that depends on the AES Electronic Code Book (ECB) block cipher. For example, network packet headers need integrity, and must be visible, while the payload must have both integrity and confidentiality. Both need authenticity.
 
 ### Performance
 OCB3 performance overhead is minimal compared to classical, non-authenticating modes like CBC. The test program was run with 100,000 loops. It was compiled with the ```-O3``` option which makes it run about 10 times faster. Output from a Core I3 CPU was:
